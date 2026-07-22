@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MÉTODO VISTA+ · Plataforma ICV+</title>
+<script>
+// Google Maps API — carregada dinamicamente
+// Em produção (Vercel): a chave é injetada pelo servidor via variável GOOGLE_MAPS_API_KEY
+// Em uso local (file://): o mapa mostra aviso amigável sem travar a plataforma
+(function(){
+  const key=window.GOOGLE_MAPS_KEY||"";
+  if(key){
+    const s=document.createElement("script");
+    s.src="https://maps.googleapis.com/maps/api/js?key="+key+"&libraries=geocoding&callback=_gmapsReady";
+    s.async=true;s.defer=true;document.head.appendChild(s);
+  }
+  window._gmapsReady=function(){if(window._onGmapsReady)window._onGmapsReady();};
+})();
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans','Segoe UI',sans-serif;background:#0D1117;color:#E6EDF3;min-height:100vh}
+.inp{background:#0D1117;border:1.5px solid #30363D;border-radius:8px;color:#E6EDF3;padding:10px 14px;font-size:16px;font-family:inherit;width:100%;outline:none;transition:border .2s}
+.inp:focus{border-color:#D4A017;box-shadow:0 0 0 3px #D4A01720}
+.inp::placeholder{color:#6E7681}
+.inp.err{border-color:#F09595}
+.sel{background:#0D1117;border:1.5px solid #30363D;border-radius:8px;color:#E6EDF3;padding:10px 12px;font-size:16px;font-family:inherit;width:100%;outline:none;cursor:pointer;transition:border .2s}
+.sel:focus{border-color:#D4A017}
+.ta{background:#0D1117;border:1.5px solid #30363D;border-radius:8px;color:#E6EDF3;padding:10px 14px;font-size:15px;font-family:inherit;width:100%;outline:none;resize:vertical;min-height:72px;transition:border .2s}
+.ta:focus{border-color:#D4A017}
+.ta::placeholder{color:#6E7681}
+.btn{background:#D4A017;color:#0D1117;border:none;border-radius:8px;padding:14px 24px;font-size:17px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;width:100%}
+.btn:hover{background:#E8B820;transform:translateY(-1px)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-out{background:transparent;color:#8B949E;border:1.5px solid #30363D;border-radius:8px;padding:13px 24px;font-size:15px;cursor:pointer;font-family:inherit;transition:all .2s;width:100%}
+.btn-out:hover{border-color:#D4A017;color:#D4A017}
+.btn-dl{background:#27500A;color:#fff;border:none;border-radius:8px;padding:14px 24px;font-size:17px;font-weight:600;cursor:pointer;font-family:inherit;width:100%;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-dl:hover{background:#3B6D11}
+.card{background:#161B22;border:1px solid #21262D;border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+.lbl{font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:#8B949E;margin-bottom:6px;display:block}
+.em{font-size:11px;color:#F09595;margin-top:4px}
+.hint{font-size:14px;color:#9DA7B0;margin-top:4px;line-height:1.5}
+.bar-bg{height:6px;background:#21262D;border-radius:10px;overflow:hidden;margin-top:5px}
+.bar-fill{height:100%;border-radius:10px;transition:width .6s ease}
+.prio-btn{border:1.5px solid #30363D;border-radius:8px;padding:10px 12px;cursor:pointer;background:#0D1117;font-family:inherit;width:100%;text-align:left;transition:all .2s}
+.prio-btn:hover{border-color:#D4A017}
+.div-line{display:flex;align-items:center;gap:10px;margin:16px 0 12px}
+.div-line span{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#D4A017;white-space:nowrap}
+.div-line::before,.div-line::after{content:'';flex:1;height:1px;background:#21262D}
+.alerta{background:#D4A01712;border:1px solid #D4A01740;border-radius:8px;padding:10px 14px;font-size:14px;color:#D4A017;margin-bottom:1rem;line-height:1.6}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fade .4s ease}
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script>
+// ── MATRIZ ICV+ v1.7 ──────────────────────────────────────────────────────
+// ── VERSÃO DESTA PLATAFORMA — atualizar a cada nova geração ──
+const BUILD_DATA="27/06/2026 · 17:42";
+
+const CRITERIOS=[
+  {id:"sinalizacao",label:"Sinalização",desc:"Ausência, inadequação ou má conservação",destaque:true,
+   subcrit:["Placa de PARE","Placa de conversão/direção","MAC-V+ (Dentes de tubarão)","Pintura de solo de PARE","Faixa de pedestre — existência e conservação ★","Faixa de pedestre — posicionamento adequado ★","Setas direcionais","Faixa de retenção / stop bar","Sinalização horizontal legível","Daylighting (eliminar obstáculos visuais na esquina)"],
+   nota:"★ Dois subcritérios independentes de faixa: existência/conservação e posicionamento antes do cruzamento."},
+  {id:"velocidade",label:"Velocidade praticada",desc:"Excesso ou ausência de moderação",
+   subcrit:["Velocidade real praticada (não a da placa)","Veículos a 50–60 km/h sem controle","Ausência de redutores de velocidade"],
+   nota:"IA estima pela combinação: perfil visual da via + dados HERE Maps de velocidade operacional histórica."},
+  {id:"visibilidade",label:"Visibilidade",desc:"Obstáculos e iluminação deficiente",
+   subcrit:["Veículo estacionado bloqueando visibilidade da via preferencial ★","Muro alto","Árvore / vegetação obstruindo","Poste bloqueando visibilidade","Curva fechada","Iluminação noturna insuficiente"],
+   nota:"Daylighting: veículo na esquina cria ponto cego, esconde pedestres e reduz tempo de reação."},
+  {id:"conflitos",label:"Conflitos veiculares",desc:"Volume e movimentos conflitantes",
+   subcrit:["Conversões simultâneas","Cruzamento 4×4 com múltiplos fluxos","Conversão à esquerda sem controle"],
+   nota:"Quanto mais conflitos simultâneos, maior a criticidade."},
+  {id:"pedestres",label:"Pedestres e ciclistas",desc:"Presença de usuários vulneráveis",
+   subcrit:["Escola próxima","Comércio intenso","Ciclovia no entorno","Travessia informal / não sinalizada","Comércio ambulante / feirantes ★"],
+   nota:"Alto fluxo vulnerável sem proteção eleva significativamente a criticidade."},
+  {id:"geometria",label:"Geometria viária",desc:"Ângulos, largura, raios de curva",
+   subcrit:["Ângulo irregular do cruzamento","Largura excessiva das vias","Múltiplas faixas sem canalização","Curvas abertas","Ausência de ilha separadora"],
+   nota:"Geometria mal resolvida gera risco estrutural permanente."},
+  {id:"ambiente",label:"Ambiente urbano",desc:"Uso do solo e interferências",
+   subcrit:["Polo gerador de tráfego intenso","Escola / Hospital nas proximidades","Terminal de transporte","Comércio intenso com carga/descarga","Equipamentos de assistência social (CRAS/CREAS/posto de saúde) ★"],
+   nota:"Mais atividade urbana = maior exposição ao risco no cruzamento."},
+  {id:"organizacao",label:"Organização operacional",desc:"Falta de medidas mitigadoras",
+   subcrit:["Sem tachão / redutor de velocidade","Sem estreitamento viário","Sem pintura de solo","Sem ilha separadora (mão e contra-mão)","Sem ordenamento geral (placas, faixas de retenção, canalização, travessias)"],
+   nota:"Se NÃO HÁ NENHUMA medida mitigadora → criticidade máxima (nota 3)."},
+  {id:"acessibilidade",label:"Acessibilidade e infraestrutura viária",desc:"Respeito ao pedestre — avaliável por imagem",
+   subcrit:["Travessia de pedestres (meio-fio / guia alto)","Rampas para cadeirantes ★","Piso tátil direcional e de alerta ★","Condições da calçada para cadeirantes","Condições de caminhabilidade geral"],
+   nota:"Critério com peso alto. Rampa ausente em cruzamento com faixa de pedestre = penalidade alta. Base: ABNT NBR 9050."},
+  {id:"campo",label:"Evidências de campo",desc:"Avaliado por indicadores indiretos visíveis nas imagens",campoCampo:true,
+   subcrit:["Motoristas não respeitam preferência (induzido por geometria/sinalização)","Iluminação pública (tipo, altura e densidade de postes)","Drenagem / alagamento (sarjetas, bocas de lobo, afundamentos)","Histórico de acidentes (danos em guias, postes amassados, marcas de freada)","Ultrapassagem indevida (geometria + ausência de sinalização)","Relatos / notoriedade pública do cruzamento"],
+   nota:"⚠ Estimativa por indicadores indiretos visuais. O técnico confirma in loco com BO/PMCS/DATATRAN."},
+  {id:"socioeconomico",label:"Vulnerabilidade Socioeconômica do Entorno",desc:"Critério exclusivo VISTA+ v1.6",destaque:true,
+   subcrit:["Densidade de equipamentos públicos essenciais (postos de saúde, CRAS, escolas públicas)","Perfil de mobilidade do entorno — dependência de transporte ativo/coletivo ★","Faixa etária predominante (idosos e crianças)","Taxa de motorização do entorno (domicílios sem veículo)","Presença de comércio informal / ambulantes","Proximidade de equipamentos para PCD (APAE, clínicas)","Indicadores de abandono — ausência de manutenção recente"],
+   nota:"★ Critério exclusivo VISTA+ v1.6. Maior vulnerabilidade + maior dependência de deslocamento a pé/bike = maior criticidade."},
+  {id:"conectividade",label:"Conectividade com a Rede de Mobilidade Ativa",desc:"Inserção na malha de mobilidade municipal",destaque:true,novo:true,
+   subcrit:["Ciclovia/ciclofaixa conectando-se ao cruzamento","Proximidade de parada de transporte público (100–300m)","Inserção em rota de corredor escolar municipal","Continuidade do passeio/calçada até pontos de interesse"],
+   nota:"Conecta o VISTA+ ao PlanMob — o cruzamento avaliado dentro da malha de mobilidade, não isoladamente."},
+  {id:"resiliencia",label:"Resiliência Climática e Ambiental",desc:"Conforto e segurança ambiental do pedestre",novo:true,
+   subcrit:["Arborização e sombreamento da travessia ★","Permeabilidade do solo / área verde próxima","Exposição solar direta no horário de pico","Predominância de superfícies pavimentadas (ilha de calor)"],
+   nota:"Avaliável por imagem de satélite (cobertura vegetal). Relevante para cidades de clima quente."},
+  {id:"horario",label:"Comportamento de Tráfego por Horário",desc:"Variação temporal de criticidade",destaque:true,novo:true,
+   subcrit:["Variação de fluxo no pico escolar (entrada/saída)","Variação de fluxo no pico comercial","Padrão noturno (velocidade × visibilidade reduzida)","Variação sazonal/turística ★"],
+   nota:"★ Único critério que captura a dimensão temporal — dados HERE Maps de padrões horários históricos."},
+];
+
+const NIVEIS=[
+  {label:"BAIXA",cor:"#27500A",bg:"#EAF3DE",max:0.7},
+  {label:"MÉDIA",cor:"#8a5a00",bg:"#FEF3C7",max:1.5},
+  {label:"ALTA",cor:"#7f2d12",bg:"#FAECE7",max:2.3},
+  {label:"EXTREMA",cor:"#791F1F",bg:"#FCEBEB",max:3.0},
+];
+
+// ── FATORES DE ALERTA CRÍTICO — dispara selo independente do ICV+ geral quando nota = 3.0 ──
+const ALERTA_CRITICO=[
+  ["faixa_exist","Ausência de faixa de pedestre"],
+  ["vis_carro","Veículo estacionado bloqueia SUA visibilidade do fluxo principal"],
+  ["vel_real","Velocidade real praticada excessiva"],
+  ["ev_hist","Histórico de acidentes registrado (BO/DATATRAN)"],
+];
+function alertasCriticos(sc){return ALERTA_CRITICO.filter(([id])=>parseFloat(sc[id])===3.0);}
+const PRIOS=[
+  {value:"alta",label:"Alta",sub:"Acidente recente",cor:"#FCEBEB",text:"#791F1F",emoji:"🔴"},
+  {value:"media",label:"Média",sub:"Queixas recorrentes",cor:"#FEF3C7",text:"#8a5a00",emoji:"🟡"},
+  {value:"baixa",label:"Baixa",sub:"Prevenção proativa",cor:"#EAF3DE",text:"#27500A",emoji:"🟢"},
+];
+
+// ── MÓDULO IMI — ÍNDICE DE MATURIDADE INSTITUCIONAL (avaliado por município, separado do ICV+) ──
+const IMI_SUBCRIT=[
+  ["imi_planmob","PlanMob vigente e atualizado (últimos 5 anos)"],
+  ["imi_estrutura","Estrutura institucional de trânsito (DEMUTRAN/SMTT)"],
+  ["imi_onu","Ações direcionadas à Década de Ação ONU 2021–2030"],
+  ["imi_nacto","Ações direcionadas ao Guia Global de Desenho de Ruas (NACTO)"],
+  ["imi_orcamento","Execução orçamentária em sinalização (últimos 3 exercícios)"],
+  ["imi_manutencao","Capacidade de manutenção contínua de sinalização"],
+];
+const NIVEIS_IMI=[
+  {label:"CRÍTICO",cor:"#791F1F",bg:"#FCEBEB",max:0.7},
+  {label:"EM ESTRUTURAÇÃO",cor:"#8a5a00",bg:"#FEF3C7",max:1.5},
+  {label:"ESTRUTURADO",cor:"#1A5276",bg:"#DCE9F5",max:2.3},
+  {label:"REFERÊNCIA",cor:"#27500A",bg:"#EAF3DE",max:3.0},
+];
+function nivelImi(score){return NIVEIS_IMI.find(n=>score<=n.max)||NIVEIS_IMI[3];}
+function totalImi(imi){const vals=IMI_SUBCRIT.map(s=>imi[s[0]]).filter(v=>v!==null&&v!==undefined&&v!=="N/A").map(parseFloat);return vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10:0;}
+const TIPOS=["Rua","Avenida","Travessa","Alameda","Estrada","Rodovia","Outra"];
+const UFS=["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"];
+
+function getNivel(s){return NIVEIS.find(n=>s<=n.max)||NIVEIS[3];}
+
+function parseAnalise(text){
+  const erroMatch=text.match(/ERRO_CRUZAMENTO:\s*([\s\S]*?)END_ERRO_CRUZAMENTO/);
+  if(erroMatch){
+    return{erroCruzamento:erroMatch[1].trim()};
+  }
+  function parseCrit(blockName,endName){
+    let crit={};
+    const jm=text.match(new RegExp(blockName+":\\s*\\n?([\\s\\S]*?)"+endName));
+    try{crit=JSON.parse(jm?.[1]?.trim()||"{}");}
+    catch{["sinalizacao","velocidade","visibilidade","conflitos","pedestres","geometria","ambiente","organizacao","acessibilidade","campo","socioeconomico","conectividade","resiliencia","horario"].forEach(k=>{});}
+    return crit;
+  }
+  function parseBlock(blockName,endName){
+    const m=text.match(new RegExp(blockName+":\\s*\\n?([\\s\\S]*?)"+endName));
+    if(m){try{return JSON.parse(m[1].trim());}catch{return{};}}
+    return{};
+  }
+  const critV1=parseCrit("CRITERIOS_V1_JSON","END_JSON_V1");
+  const critV2=parseCrit("CRITERIOS_V2_JSON","END_JSON_V2");
+  const subcritV1=parseBlock("SUBCRIT_V1_JSON","END_SUBCRIT_V1");
+  const subcritV2=parseBlock("SUBCRIT_V2_JSON","END_SUBCRIT_V2");
+  const imi=parseBlock("IMI_JSON","END_IMI");
+  const im=text.match(/INTERVENCOES:\s*\n([\s\S]*?)END_INTERVENCOES/);
+  const rm=text.match(/RESUMO:\s*\n([\s\S]*?)END_RESUMO/);
+  const fm1=text.match(/DIAGNOSTICO_V1:\s*([\s\S]*?)END_DIAGNOSTICO_V1/);
+  const fm2=text.match(/DIAGNOSTICO_V2:\s*([\s\S]*?)END_DIAGNOSTICO_V2/);
+  return{
+    critV1,critV2,subcritV1,subcritV2,imi,
+    intervencoes:im?im[1].trim().split("\n")
+      .map(l=>l.trim())
+      .filter(l=>l.includes("[CUSTO ZERO]")||l.includes("[BAIXO CUSTO]")||l.includes("[MÉDIO CUSTO]"))
+      .map(l=>l.replace(/^[-•\d.)\s]+/,"").trim())
+      .filter(Boolean):[],
+    resumo:rm?rm[1].trim():"",
+    diagnosticoV1:fm1?fm1[1].trim():"",
+    diagnosticoV2:fm2?fm2[1].trim():"",
+  };
+}
+
+function gerarLaudo(resultado,nivel){
+  const cod="ICV-"+Math.random().toString(36).slice(2,8).toUpperCase();
+  const data=new Date().toLocaleString("pt-BR");
+  const corN=nivel.label==="BAIXA"?"#27500A":nivel.label==="MÉDIA"?"#8a5a00":nivel.label==="ALTA"?"#7f2d12":"#791F1F";
+  const bgN=nivel.label==="BAIXA"?"#EAF3DE":nivel.label==="MÉDIA"?"#FEF3C7":nivel.label==="ALTA"?"#FAECE7":"#FCEBEB";
+  const prio=PRIOS.find(p=>p.value===resultado.cruzamento.prioridade)||{label:"Não informado",sub:"",emoji:"⚪",cor:"#30363D",text:"#8B949E"};
+  const V1=resultado.cruzamento.rua1,V2=resultado.cruzamento.rua2;
+  const niv1=getNivel(resultado.icv1),niv2=getNivel(resultado.icv2);
+  const hdr=`<div style="background:#0D1117;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-radius:6px 6px 0 0"><div><span style="font-size:10px;font-weight:700;color:#999;letter-spacing:3px;display:block">MÉTODO</span><span style="font-size:24px;font-weight:900;color:#D4A017;line-height:1">VISTA<span style="color:#fff">+</span></span><div style="font-size:9px;color:#888;margin-top:2px">Plataforma ICV+ · 14 critérios + IMI</div><div style="font-size:10px;color:#D4A017;margin-top:2px;font-weight:700">🕐 Build: ${BUILD_DATA}</div></div><div style="text-align:right;font-size:11px;color:#888"><div style="font-size:13px;font-weight:700;color:#D4A017">${cod}</div><div>${resultado.cruzamento.cidade}/${resultado.cruzamento.uf} · ${prio.emoji} ${prio.label}</div><div>${data}</div></div></div><div style="height:4px;background:#D4A017;margin-bottom:20px;border-radius:0 0 3px 3px"></div>`;
+  const imiTot=resultado.imi?totalImi(resultado.imi):0;
+  const imiNiv=nivelImi(imiTot);
+  const rodape=`<div style="margin-top:20px;border-top:2px solid #D4A017;padding-top:8px;font-size:10px;color:#aaa;line-height:1.7">MÉTODO VISTA+ · Matriz ICV+ (14 critérios) + IMI · Marcos Gomes Rangel · mgr.mar@gmail.com · CNPJ 62.678.856/0001-69<br>Laudo gerado com IA — validação de campo recomendada. Código: <strong style="color:#D4A017">${cod}</strong> · ICV+: <strong>${resultado.total}/3</strong> (${nivel.label}) · IMI: <strong>${imiTot}/3</strong> (${imiNiv.label})</div>`;
+
+  // PG1
+  const pg1=hdr+
+  `<div style="background:#f5f5f5;border-radius:8px;padding:14px 18px;display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;border:1px solid #e0e0e0"><div style="flex:1"><div style="font-size:18px;font-weight:700;color:#111;margin-bottom:3px">${V1}</div><div style="font-size:14px;color:#555;margin-bottom:5px">× ${V2}</div><div style="font-size:11px;color:#888">${[resultado.cruzamento.bairro,resultado.cruzamento.cidade+"/"+resultado.cruzamento.uf].filter(Boolean).join(" · ")}</div>${resultado.cruzamento.prioridade?`<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 10px;border-radius:20px;background:${bgN};color:${corN};margin-top:6px">${prio.emoji} Motivo: ${prio.label} — ${prio.sub}</span>`:""}</div><div style="display:flex;gap:10px;margin-left:16px"><div style="background:${corN};color:#fff;border-radius:10px;padding:12px 16px;text-align:center;min-width:74px"><div style="font-size:9px;opacity:.85">ICV+</div><div style="font-size:36px;font-weight:700;line-height:1">${resultado.total}</div><div style="font-size:10px;font-weight:700;background:rgba(255,255,255,.2);border-radius:8px;padding:2px 6px;margin-top:4px">${nivel.label}</div></div><div style="background:#7B5BA6;color:#fff;border-radius:10px;padding:12px 16px;text-align:center;min-width:74px"><div style="font-size:9px;opacity:.85">IMI</div><div style="font-size:36px;font-weight:700;line-height:1">${imiTot}</div><div style="font-size:9px;font-weight:700;background:rgba(255,255,255,.2);border-radius:8px;padding:2px 6px;margin-top:4px">${imiNiv.label}</div></div></div></div>`+
+  (resultado.resumo?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#555;margin-bottom:6px;padding-bottom:3px;border-bottom:2px solid #D4A017">Diagnóstico ICV+</div><div style="background:#fffbe6;border-left:4px solid #D4A017;padding:12px 14px;margin-bottom:12px;font-size:12px;line-height:1.8;color:#333;border-radius:0 5px 5px 0">${resultado.resumo}</div>`:"")+
+  (resultado.diagnosticoV1||resultado.diagnosticoV2?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8a5a00;margin-bottom:6px;padding-bottom:3px;border-bottom:2px solid #EF9F27">📋 Diagnóstico por Via</div><div style="background:#FEF3C7;border-left:4px solid #EF9F27;padding:12px 14px;margin-bottom:12px;font-size:12px;line-height:1.8;color:#7B4F00;border-radius:0 5px 5px 0">${resultado.diagnosticoV1?`<strong>Via 1 (${V1}):</strong> ${resultado.diagnosticoV1}<br><br>`:""}${resultado.diagnosticoV2?`<strong>Via 2 (${V2}):</strong> ${resultado.diagnosticoV2}`:""}</div>`:"")+
+  (resultado.cruzamento.obs?`<div style="background:#f0f4ff;border:1px solid #c8d4f0;border-radius:5px;padding:10px 14px;margin-bottom:12px;font-size:12px;line-height:1.7;color:#445"><strong>Observações:</strong> ${resultado.cruzamento.obs}</div>`:"")+
+  (()=>{
+    const al1=alertasCriticos(resultado.subcritV1||{}).map(a=>({...a,via:"1 — "+V1}));
+    const al2=alertasCriticos(resultado.subcritV2||{}).map(a=>({...a,via:"2 — "+V2}));
+    const todos=[...al1,...al2];
+    if(todos.length===0)return"";
+    return `<div style="background:#FCEBEB;border:2px solid #791F1F;border-radius:8px;padding:14px 16px;margin-bottom:16px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:20px">⚠️</span><span style="font-size:15px;font-weight:700;color:#791F1F;text-transform:uppercase;letter-spacing:.04em">Alerta de Risco Concentrado Extremo</span></div><div style="font-size:13px;color:#5c1818;margin-bottom:8px">Os itens abaixo atingiram a nota máxima de criticidade (3.0) e representam risco grave isolado, independente da classificação geral do ICV+. Intervenção prioritária recomendada nestes pontos específicos:</div>`+
+    todos.map(a=>`<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:5px;padding:6px 8px;background:#fff;border-radius:5px;border-left:3px solid #791F1F"><span style="font-size:11px;font-weight:700;color:#791F1F">●</span><div style="font-size:13.5px;color:#333"><strong>${a[1]}</strong> — Via ${a.via}</div></div>`).join("")+
+    `</div>`;
+  })()+
+  `<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">`+
+  [["1",V1,resultado.scoresV1,resultado.icv1,niv1],["2",V2,resultado.scoresV2,resultado.icv2,niv2]].map(([n,via,scores,ic,nv])=>{
+    return`<div style="background:#fff;border:2px solid ${nv.bg};border-radius:8px;padding:12px 14px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:5px">Via ${n}${n==="1"?" — Secundária":" — Preferencial"}</div><div style="font-size:15px;font-weight:700;color:#111;margin-bottom:8px">${via}</div>`+
+    scores.map(c=>{
+      const isNull=c.score===null||c.score===undefined;
+      const pct=isNull?0:Math.round((c.score/3)*100);
+      const bc=isNull?"#bbb":c.score>=2.5?"#dc3c3c":c.score>=1.5?"#e09618":"#4e9e22";
+      return `<div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;margin-bottom:1px"><span style="font-size:13px;color:#333">${c.label}${c.novo?' <span style="color:#7B5BA6;font-size:8px">NOVO</span>':""}</span><span style="font-size:12px;font-weight:700;color:${bc}">${isNull?"—":c.score.toFixed(1)}</span></div><div style="background:#e8e8e8;border-radius:3px;height:5px;overflow:hidden"><div style="background:${bc};width:${pct}%;height:100%"></div></div></div>`;
+    }).join("")+
+    `<div style="margin-top:10px;background:${nv.bg};border-radius:6px;padding:7px;text-align:center"><div style="font-size:10px;color:${nv.cor}">ICV+ Via ${n}</div><div style="font-size:22px;font-weight:700;color:${nv.cor};line-height:1">${ic}</div><div style="font-size:10px;font-weight:700;color:${nv.cor}">${nv.label}</div></div></div>`;
+  }).join("")+`</div>`+
+  (resultado.intervencoes&&resultado.intervencoes.length>0?`<div style="margin-top:14px;background:#0D1117;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center"><div style="font-size:12px;color:#fff">🔧 <strong>${resultado.intervencoes.length} intervenções recomendadas</strong> identificadas para este cruzamento</div><div style="font-size:10px;color:#D4A017;font-weight:700">VER PÁGINA SEGUINTE →</div></div>`:"")+
+  rodape;
+
+  // PG2
+  const SUBCRIT_MAP={
+    sinalizacao:["placa_pare","placa_conv","macv","pintura_pare","faixa_exist","faixa_pos","setas","stop_bar","horiz","daylighting"],
+    velocidade:["vel_real","vel_exc","vel_red"],
+    visibilidade:["vis_carro","vis_muro","vis_arvore","vis_poste","vis_curva","vis_ilum"],
+    conflitos:["conf_conv","conf_4x4","conf_esq"],
+    pedestres:["ped_escola","ped_comercio","ped_ciclo","ped_informal","ped_ambul"],
+    geometria:["geo_ang","geo_larg","geo_faix","geo_curva","geo_ilha"],
+    ambiente:["amb_polo","amb_escola","amb_term","amb_com","amb_assist"],
+    organizacao:["org_tach","org_estr","org_pint","org_ilha","org_ord"],
+    acessibilidade:["ac_meio","ac_rampa","ac_tatil","ac_calc","ac_caminh"],
+    campo:["ev_pref","ev_vel","ev_ilum","ev_dren","ev_ultra","ev_hist","ev_relat"],
+    socioeconomico:["se_equip","se_mobil","se_idade","se_motor","se_inform","se_pcd","se_aband"],
+    conectividade:["cn_ciclo","cn_parada","cn_escolar","cn_passeio"],
+    resiliencia:["rc_sombra","rc_solo","rc_sol","rc_pavim"],
+    horario:["hr_escolar","hr_comercial","hr_noturno","hr_sazonal"],
+  };
+
+  function tabelaVia(scores,sc,via,n,icv,nv){
+    return `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#555;margin-bottom:10px;padding-bottom:3px;border-bottom:2px solid #D4A017">Via ${n} — ${via}</div><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#0D1117;color:#fff"><th style="padding:8px 10px;text-align:left;width:120px;font-size:10px">Critério</th><th style="padding:8px 10px;text-align:left;font-size:10px">Subcritério</th><th style="padding:8px 10px;text-align:right;width:44px;font-size:10px">Nota</th><th style="padding:8px 10px;text-align:center;width:80px;font-size:10px">Nível</th></tr></thead><tbody>`+
+    scores.map((c,i)=>{
+      const isNull=c.score===null||c.score===undefined;
+      const pct=isNull?0:Math.round((c.score/3)*100);
+      const bc=isNull?"#bbb":c.score>=2.5?"#dc3c3c":c.score>=1.5?"#e09618":"#4e9e22";
+      const rowBg=c.novo?"#F0EAFB":c.destaque?"#fffbe6":c.campoCampo?"#f8f8f8":i%2===0?"#f9f9f9":"#fff";
+      const keys=SUBCRIT_MAP[c.id]||[];
+      const subRows=c.subcrit.map((s,si)=>{
+        const key=keys[si]||"";
+        const nota=sc[key];
+        const isNullSub=nota===null||nota===undefined;
+        const valSub=isNullSub?null:parseFloat(nota);
+        const bcSub=isNullSub?"#ccc":valSub>=2.5?"#dc3c3c":valSub>=1.5?"#e09618":"#4e9e22";
+        const pctSub=isNullSub?0:Math.round((valSub/3)*100);
+        const isStar=s.includes("★");
+        return `<tr style="border-bottom:1px solid #f0f0f0;background:${rowBg}">
+          <td style="padding:4px 10px;font-size:10px;color:${isStar?"#8a5a00":"#444"};font-weight:${isStar?"700":"400"}">${s}</td>
+          <td style="padding:4px 10px;text-align:right;font-size:12px;font-weight:700;color:${bcSub}">${isNullSub?"—":valSub.toFixed(1)}</td>
+          <td style="padding:4px 10px;text-align:center">${isNullSub?`<span style="font-size:9px;color:#ccc;font-style:italic">est.</span>`:`<div style="background:#e0e0e0;border-radius:3px;height:5px;overflow:hidden"><div style="background:${bcSub};width:${pctSub}%;height:100%;border-radius:3px"></div></div>`}</td>
+        </tr>`;
+      }).join("");
+      return `<tr style="background:${c.novo?"#E5D9F5":c.destaque?"#FFF3CC":c.campoCampo?"#f0f0f0":"#E8E8E8"}">
+        <td colspan="2" style="padding:7px 10px;font-size:12px;font-weight:700;color:#111;border-top:2px solid #ddd">
+          ${c.label}${c.destaque?' <span style="color:#D4A017">★</span>':""}${c.campoCampo?' <span style="font-size:10px">📋</span>':""}${c.novo?' <span style="background:#7B5BA6;color:#fff;font-size:8px;padding:1px 5px;border-radius:6px">NOVO</span>':""}
+          <span style="font-size:10px;color:#888;font-weight:400;margin-left:6px">${c.desc}</span>
+        </td>
+        <td style="padding:7px 10px;text-align:right;font-size:15px;font-weight:700;color:${bc};border-top:2px solid #ddd">${isNull?"?":c.score.toFixed(1)}</td>
+        <td style="padding:7px 10px;text-align:center;border-top:2px solid #ddd">${isNull?`<span style="font-size:9px;color:#aaa;font-style:italic">estimativa</span>`:`<div style="background:#e0e0e0;border-radius:3px;height:6px;overflow:hidden"><div style="background:${bc};width:${pct}%;height:100%;border-radius:3px"></div></div>`}</td>
+      </tr>${subRows}`;
+    }).join("")+
+    `<tr style="background:#0D1117"><td colspan="2" style="padding:10px;font-size:12px;font-weight:700;color:#fff">ICV+ Via ${n}</td><td style="padding:10px;font-size:17px;font-weight:700;color:#D4A017;text-align:right">${icv}</td><td style="padding:10px;text-align:center"><strong style="color:#D4A017;font-size:10px">${nv.label}</strong></td></tr></tbody></table>`;
+  }
+
+  const pg2=hdr+
+  `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#555;margin-bottom:12px;padding-bottom:3px;border-bottom:2px solid #D4A017">Matriz ICV+ — 14 Critérios · Subcritérios Pontuados · Via 1 (${V1})</div>`+
+  tabelaVia(resultado.scoresV1,resultado.subcritV1||{},V1,"1",resultado.icv1,niv1)+
+  `<div style="margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${NIVEIS.map(n=>`<div style="background:${n.bg};border-radius:5px;padding:8px;text-align:center;border:1px solid ${n.cor}30"><div style="font-size:10px;font-weight:700;color:${n.cor}">${n.label}</div><div style="font-size:11px;color:${n.cor};margin-top:1px">${n.max<=0.7?"0,0–0,7":n.max<=1.5?"0,8–1,5":n.max<=2.3?"1,6–2,3":"2,4–3,0"}</div></div>`).join("")}</div>`+
+  rodape;
+
+  const pg2b=hdr+
+  `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#555;margin-bottom:12px;padding-bottom:3px;border-bottom:2px solid #D4A017">Matriz ICV+ — 14 Critérios · Subcritérios Pontuados · Via 2 (${V2})</div>`+
+  tabelaVia(resultado.scoresV2,resultado.subcritV2||{},V2,"2",resultado.icv2,niv2)+
+  `<div style="margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${NIVEIS.map(n=>`<div style="background:${n.bg};border-radius:5px;padding:8px;text-align:center;border:1px solid ${n.cor}30"><div style="font-size:10px;font-weight:700;color:${n.cor}">${n.label}</div><div style="font-size:11px;color:${n.cor};margin-top:1px">${n.max<=0.7?"0,0–0,7":n.max<=1.5?"0,8–1,5":n.max<=2.3?"1,6–2,3":"2,4–3,0"}</div></div>`).join("")}</div>`+
+  (resultado.imi?`<div style="margin-top:16px;background:#F5F0FA;border:1.5px solid #7B5BA6;border-radius:8px;padding:14px 16px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7B5BA6;margin-bottom:8px">IMI — Índice de Maturidade Institucional do Município (estimado pela IA — confirmar com a prefeitura)</div><div style="display:grid;grid-template-columns:1fr 90px;gap:14px;align-items:center"><div>${IMI_SUBCRIT.map(s=>{const v=resultado.imi[s[0]];const isNull=v===null||v===undefined;const val=isNull?null:parseFloat(v);const bcc=isNull?"#ccc":val>=2.5?"#dc3c3c":val>=1.5?"#e09618":"#4e9e22";return`<div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px"><span style="color:#444">${s[1]}</span><span style="font-weight:700;color:${bcc}">${isNull?"—":val.toFixed(1)}</span></div>`;}).join("")}</div><div style="background:${imiNiv.cor};color:#fff;border-radius:8px;padding:10px;text-align:center"><div style="font-size:26px;font-weight:700;line-height:1">${imiTot}</div><div style="font-size:9px;opacity:.9">/3</div><div style="font-size:9px;font-weight:700;margin-top:3px">${imiNiv.label}</div></div></div></div>`:"")+
+  `<div style="margin-top:10px;font-size:9px;color:#aaa;border-top:1px solid #eee;padding-top:6px">🔍 Diagnóstico gerado remotamente por IA com base em conhecimento geográfico e contextual da via — sem acesso a imagem real do cruzamento neste momento. A existência física do cruzamento foi avaliada por inferência e DEVE ser confirmada antes de qualquer decisão. Confirmação in loco pelo técnico é obrigatória antes de qualquer intervenção.</div>`+
+  rodape;
+
+  // PG3
+  const pg3=resultado.intervencoes.length>0?hdr+
+  `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#555;margin-bottom:14px;padding-bottom:3px;border-bottom:2px solid #D4A017">Intervenções Recomendadas — ${resultado.cruzamento.rua1} × ${resultado.cruzamento.rua2}</div>`+
+  resultado.intervencoes.map((item,i)=>{
+    const isCusto=item.includes("[CUSTO ZERO]"),isBaixo=item.includes("[BAIXO CUSTO]");
+    const tBg=isCusto?"#EAF3DE":isBaixo?"#E6F1FB":"#FEF3C7";
+    const tBord=isCusto?"#639922":isBaixo?"#185FA5":"#D4A017";
+    const tL=isCusto?"CUSTO ZERO":isBaixo?"BAIXO CUSTO":"MÉDIO CUSTO";
+    const txt=item.replace(/\[.*?\]\s*/,"");
+    return `<div style="display:flex;gap:12px;padding:12px 14px;margin-bottom:8px;background:${tBg};border-radius:7px;border-left:4px solid ${tBord};align-items:flex-start"><div style="width:24px;height:24px;border-radius:50%;background:${tBord};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${i+1}</div><div><span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:${tBord};color:#fff;margin-bottom:4px">${tL}</span><div style="font-size:13px;color:#222;line-height:1.6">${txt}</div></div></div>`;
+  }).join("")+
+  `<div style="margin-top:14px;background:#f5f5f5;border-radius:6px;padding:10px 12px;font-size:11px;color:#555;line-height:1.8"><strong>Legenda:</strong> <span style="background:#EAF3DE;color:#27500A;font-weight:700;padding:1px 7px;border-radius:8px;font-size:10px">CUSTO ZERO</span> Mudança de norma/sinalização leve · <span style="background:#E6F1FB;color:#0c3d7a;font-weight:700;padding:1px 7px;border-radius:8px;font-size:10px">BAIXO CUSTO</span> Pintura, placas, tachões (até R$ 5 mil) · <span style="background:#FEF3C7;color:#8a5a00;font-weight:700;padding:1px 7px;border-radius:8px;font-size:10px">MÉDIO CUSTO</span> Obras leves (R$ 5–50 mil)</div>`+
+  rodape:"";
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>@page{size:A4;margin:16mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;color:#222;background:#fff;font-size:12px}.page{page-break-after:always;padding-bottom:8px}.page:last-child{page-break-after:auto}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{page-break-after:always}}</style></head><body><div class="page">${pg1}</div><div class="page">${pg2}</div><div class="page">${pg2b}</div>${pg3?`<div class="page">${pg3}</div>`:""}</body></html>`;
+  try{const blob=new Blob([html],{type:"text/html;charset=utf-8"});return{url:URL.createObjectURL(blob),nome:`Laudo_VISTA+_${resultado.cruzamento.rua1.replace(/\s+/g,"_")}_${new Date().toISOString().slice(0,10)}.html`};}
+  catch(e){alert("Erro: "+e.message);return null;}
+}
+
+// ── STATE ────────────────────────────────────────────────────────────────
+// Buscar chave do Google Maps via proxy (só funciona no Vercel, não em file://)
+(async function(){
+  try{
+    const r=await fetch("/api/diagnostico",{method:"GET"});
+    // rota especial /api/gmaps-key
+  }catch(e){}
+  try{
+    const r=await fetch("/api/gmaps-key");
+    if(r.ok){
+      const d=await r.json();
+      if(d.key&&!window.GOOGLE_MAPS_KEY){
+        window.GOOGLE_MAPS_KEY=d.key;
+        const s=document.createElement("script");
+        s.src="https://maps.googleapis.com/maps/api/js?key="+d.key+"&libraries=geocoding&callback=_gmapsReady";
+        s.async=true;s.defer=true;document.head.appendChild(s);
+      }
+    }
+  }catch(e){}
+})();
+
+let S={
+  step:"input",
+  form:{tipo1:"Rua",rua1:"",tipo2:"Avenida",rua2:"",bairro:"",cidade:"Maceió",uf:"AL",prioridade:null,obs:""},
+  expandido:null,loadMsg:"Localizando o cruzamento...",
+  resultado:null,laudoUrl:null,erros:{},touched:{}
+};
+
+// ── PERSISTÊNCIA DO IMI POR CIDADE ──
+function chaveImi(cidade,uf){return "vistaplus_imi_"+(cidade||"").trim().toLowerCase()+"_"+(uf||"").trim().toLowerCase();}
+function salvarImiCidade(cidade,uf,imi){try{if(imi&&Object.values(imi).some(v=>v!==null&&v!==undefined))localStorage.setItem(chaveImi(cidade,uf),JSON.stringify(imi));}catch(e){}}
+function carregarImiCidade(cidade,uf){try{const r=localStorage.getItem(chaveImi(cidade,uf));return r?JSON.parse(r):null;}catch(e){return null;}}
+const MSGS=["Localizando o cruzamento...","Verificando existência da interseção...","Avaliando sinalização e faixas...","Analisando posicionamento das faixas de pedestre...","Verificando Daylighting e obstáculos...","Avaliando perfil de velocidade da via...","Verificando acessibilidade e rampas...","Avaliando conectividade e resiliência climática...","Aplicando Matriz ICV+...","Calculando IMI do município...","Gerando intervenções priorizadas...","Elaborando laudo técnico..."];
+let msgTimer=null,msgIdx=0;
+
+function setState(p){Object.assign(S,p);render();}
+function validar(){const e={};if(!S.form.rua1.trim())e.rua1="Informe a via 1";if(!S.form.rua2.trim())e.rua2="Informe a via 2";if(!S.form.cidade.trim())e.cidade="Informe a cidade";return e;}
+
+async function analisar(){
+  // Ler valores actuais do DOM antes de validar
+  ["rua1","rua2","bairro","cidade","obs"].forEach(k=>{
+    const el2=document.getElementById("inp_"+k);
+    if(el2)S.form[k]=el2.value;
+  });
+  ["tipo1","tipo2","uf"].forEach(k=>{
+    const el2=document.getElementById("sel_"+k);
+    if(el2)S.form[k]=el2.value;
+  });
+  const e=validar();setState({erros:e,touched:{rua1:true,rua2:true,cidade:true}});
+  if(Object.keys(e).length>0)return;
+  setState({step:"loading",laudoUrl:null});
+  msgIdx=0;clearInterval(msgTimer);
+  msgTimer=setInterval(()=>{msgIdx=(msgIdx+1)%MSGS.length;setState({loadMsg:MSGS[msgIdx]});},1500);
+  const f=S.form,rua1=f.tipo1+" "+f.rua1,rua2=f.tipo2+" "+f.rua2;
+  const prio=PRIOS.find(p=>p.value===f.prioridade)?.label||"";
+  const imiSalvo=carregarImiCidade(f.cidade,f.uf);
+  const imiContexto=imiSalvo?`
+IMI JÁ CALCULADO PARA ESTE MUNICÍPIO:
+Os seguintes valores do IMI já foram calculados em diagnóstico anterior para ${f.cidade}/${f.uf} e devem ser REUTILIZADOS (não recalcule):
+${JSON.stringify(imiSalvo)}
+Use exatamente esses valores no bloco IMI_JSON da sua resposta, a menos que haja razão explícita para revisão.`:"";
+  const prompt=`Você é o sistema MÉTODO VISTA+ — Diagnóstico Socioviário de Cruzamentos Sem Semáforos nas Cidades, criado por Marcos Gomes Rangel.
+
+CRUZAMENTO INFORMADO:
+- Via secundária (cede passagem): ${rua1}
+- Via preferencial: ${rua2}
+- Bairro: ${f.bairro||"não informado"}
+- Cidade/UF: ${f.cidade}/${f.uf}
+
+⚠️ PASSO OBRIGATÓRIO ANTES DE QUALQUER DIAGNÓSTICO — VALIDAÇÃO DE EXISTÊNCIA:
+Antes de gerar qualquer nota, verifique com o máximo de certeza possível se "${rua1}" e "${rua2}" realmente SE CRUZAM fisicamente em ${f.cidade}/${f.uf} (são a mesma via em algum ponto, formando uma esquina/interseção real) — e não apenas duas ruas que existem na mesma cidade ou bairro sem se tocar.
+
+Você NÃO tem acesso a imagem real neste momento — então avalie com base no seu conhecimento geográfico de ${f.cidade}. Se você não tem confiança RAZOÁVEL de que essas duas vias se cruzam (por exemplo: nomes de vias muito distantes entre si, vias paralelas conhecidas, nomes que parecem não pertencer à mesma região da cidade, ou qualquer sinal de que pode não existir uma interseção real), você DEVE recusar o diagnóstico em vez de inventar notas.
+
+Se NÃO houver confiança de que o cruzamento existe, retorne APENAS este bloco e PARE — não gere nenhum outro conteúdo:
+
+ERRO_CRUZAMENTO:
+Explique em 1-2 frases por que você não tem confiança de que essas vias se cruzam (ex.: "Não há registro de que a Rua X e a Avenida Y se cruzem em ${f.cidade} — são vias que parecem estar em regiões distintas do bairro/cidade." ou "Essas vias podem ser paralelas, não haveria uma esquina entre elas.").
+END_ERRO_CRUZAMENTO
+
+Se você TEM confiança razoável de que o cruzamento existe, prossiga normalmente com o diagnóstico completo abaixo.
+
+${prio?"- Motivo informado pelo solicitante: "+prio:""}
+${imiContexto}
+${f.obs?"- Observações: "+f.obs:""}
+
+MATRIZ ICV+ v1.7 OFICIAL — 14 critérios. IMPORTANTE: avalie a Via 1 (secundária) e a Via 2 (preferencial) SEPARADAMENTE — elas têm características frequentemente distintas (ex.: faixa de pedestre pode existir em uma via e não na outra, velocidade praticada é diferente em cada sentido, sinalização pode estar presente só de um lado). Para cada critério, atribua uma nota GERAL e uma nota por subcritério, PARA CADA VIA:
+
+1. SINALIZAÇÃO
+   Subcritérios: placa_pare, placa_conv, macv, pintura_pare, faixa_exist★, faixa_pos★, setas, stop_bar, horiz, daylighting
+   ⚠ faixa_pos: após cruzamento→3.0; sem stop bar→1.5; antes+stop bar→0.0
+
+2. VELOCIDADE PRATICADA
+   Subcritérios: vel_real, vel_exc, vel_red
+   Via local→baixo · coletora→moderado · arterial→2.0–3.0 · rodovia urbana→3.0
+
+3. VISIBILIDADE
+   Subcritérios: vis_carro★, vis_muro, vis_arvore, vis_poste, vis_curva, vis_ilum
+   ⚠ REGRA DE ATRIBUIÇÃO CRÍTICA para vis_carro: este subcritério pergunta "o que bloqueia a visibilidade de QUEM TRAFEGA NESTA VIA", não "onde está o veículo estacionado fisicamente". Um veículo estacionado na Via 2 pode bloquear a visibilidade de quem vem pela Via 1 (e vice-versa) — neste caso, pontue ALTO o vis_carro DA VIA CUJO MOTORISTA TEM A VISÃO BLOQUEADA, mesmo que o veículo esteja fisicamente estacionado na via cruzada. Não pontue o vis_carro da via onde o veículo está estacionado apenas por ele estar lá — pontue onde o bloqueio de visão realmente ocorre. Esta é a "causa invisível de acidente" central do método VISTA+: o motorista de uma via não vê o fluxo da via cruzada a tempo de frear, por causa de um veículo estacionado na OUTRA via. Se não houver bloqueio de visibilidade para nenhuma das duas vias, pontue baixo (0.0–0.5) ou null em ambas; se há bloqueio para uma via mas não para outra, a nota deve refletir essa assimetria com precisão.
+   ⚠ Cada subcritério avalia um obstáculo DIFERENTE e ESPECÍFICO. Se a imagem não mostra muro, marque vis_muro como null — não dê uma nota "de risco geral" para um obstáculo que não existe. Pontue alto APENAS o(s) obstáculo(s) realmente presente(s); os demais ficam null. vis_ilum quase sempre será null em imagens diurnas (sem como avaliar iluminação noturna).
+
+4. CONFLITOS VEICULARES
+   Subcritérios: conf_conv, conf_4x4, conf_esq
+
+5. PEDESTRES E CICLISTAS
+   Subcritérios: ped_escola, ped_comercio, ped_ciclo, ped_informal, ped_ambul★
+
+6. GEOMETRIA VIÁRIA
+   Subcritérios: geo_ang, geo_larg, geo_faix, geo_curva, geo_ilha
+   ⚠ Avalie apenas o que é visível na geometria física do cruzamento. Se o cruzamento é um ortogonal simples sem curvas, largura excessiva ou múltiplas faixas, os subcritérios correspondentes (geo_curva, geo_larg, geo_faix) ficam null — não são "defeitos potenciais", são caraterísticas ausentes.
+
+7. AMBIENTE URBANO
+   Subcritérios: amb_polo, amb_escola, amb_term, amb_com, amb_assist★
+
+8. ORGANIZAÇÃO OPERACIONAL
+   Subcritérios: org_tach, org_estr, org_pint, org_ilha, org_ord
+   ⚠ Pontue cada subcritério apenas onde há evidência visual clara de ausência da medida (ex.: rua visivelmente sem qualquer pintura de solo = org_pint alto). Se a imagem não permite confirmar presença/ausência de uma medida específica (ex.: não é possível avaliar se há tachão pela foto disponível), use null para aquele subcritério — NÃO assuma nota máxima (3.0) por padrão. Se nenhum subcritério puder ser avaliado com confiança, o critério inteiro fica null.
+
+9. ACESSIBILIDADE E INFRAESTRUTURA VIÁRIA
+   Subcritérios: ac_meio, ac_rampa★, ac_tatil★, ac_calc, ac_caminh
+   ⚠ Rampa ausente em cruzamento com faixa = ac_rampa 3.0
+
+10. EVIDÊNCIAS DE CAMPO — avalie por indicadores INDIRETOS visíveis nas imagens:
+    Subcritérios: ev_pref, ev_vel, ev_ilum, ev_dren, ev_ultra, ev_hist★, ev_relat
+    ⚠ Use null por subcritério se não houver nenhum indicador disponível
+
+11. VULNERABILIDADE SOCIOECONÔMICA DO ENTORNO — exclusivo VISTA+
+    Subcritérios: se_equip, se_mobil★, se_idade, se_motor, se_inform, se_pcd, se_aband
+    ⚠ Maior vulnerabilidade + dependência de deslocamento a pé/bike = maior criticidade. Este critério tende a ser semelhante nas duas vias (mesmo entorno), mas pode variar se uma via dá acesso a equipamentos diferentes.
+
+12. CONECTIVIDADE COM A REDE DE MOBILIDADE ATIVA — NOVO v1.7
+    Subcritérios: cn_ciclo, cn_parada, cn_escolar, cn_passeio
+    ⚠ Avalie pela presença de ciclovias/paradas próximas visíveis no mapa/satélite
+
+13. RESILIÊNCIA CLIMÁTICA E AMBIENTAL — NOVO v1.7
+    Subcritérios: rc_sombra★, rc_solo, rc_sol, rc_pavim
+    ⚠ Avalie pela cobertura vegetal visível na imagem de satélite
+
+14. COMPORTAMENTO DE TRÁFEGO POR HORÁRIO — NOVO v1.7
+    Subcritérios: hr_escolar, hr_comercial, hr_noturno, hr_sazonal★
+    ⚠ Estime pelo perfil da via (presença de escola/comércio) e contexto da cidade (turística/sazonal)
+
+REGRAS DE PONTUAÇÃO — LEIA COM ATENÇÃO, é a causa mais comum de divergência com o laudo de campo:
+
+1. VALORES VÁLIDOS: 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0 ou null.
+
+2. USE null GENEROSAMENTE — é o comportamento correto, não uma falha. Um técnico em campo só pontua o que ele observa com confiança; ele NÃO inventa uma nota "moderada" para o que não consegue avaliar. Você deve fazer o mesmo. Use null sempre que:
+   - O subcritério não é fisicamente aplicável a este cruzamento (ex.: "muro alto" quando não há muro nas imagens, "curva fechada" quando a via é reta).
+   - A imagem disponível não mostra evidência suficiente para julgar com confiança (ex.: não dá para ver se há iluminação noturna numa foto diurna; não dá para avaliar "velocidade real praticada" sem veículos em movimento visíveis).
+   - O subcritério depende de dado que você não tem e não pode inferir com segurança a partir do contexto (cidade/bairro) informado.
+   NÃO force uma nota intermediária "só para preencher". Se ficar em dúvida entre pontuar 1.5 ou usar null, prefira null — é mais honesto e mais alinhado ao padrão de campo.
+
+3. É NORMAL e ESPERADO que critérios inteiros fiquem com TODOS os subcritérios em null quando a categoria simplesmente não se aplica a este cruzamento específico (ex.: "Geometria viária" pode ser irrelevante se o cruzamento é simples e ortogonal sem ângulos/curvas a avaliar; "Organização operacional" pode não ter evidência visual de nenhuma medida mitigadora presente ou ausente). Quando isso ocorrer, retorne o critério GERAL também como null.
+
+4. Onde HÁ evidência visual clara (ex.: presença/ausência de faixa de pedestre, presença de carro estacionado na esquina, presença de rampa), pontue normalmente — não use null para evitar avaliar o que está claramente visível.
+
+5. Notas DIFERENCIADAS entre subcritérios E entre as duas vias quando a realidade física for diferente (ex.: se só a via 2 tem faixa de pedestre, a nota de faixa_exist da via 1 deve refletir essa ausência).
+
+6. null exclui o subcritério da média do critério. A nota GERAL do critério = média dos subcritérios não-nulos. Se TODOS os subcritérios de um critério forem null, o critério GERAL também é null.
+
+Retorne EXATAMENTE neste formato — na ordem abaixo:
+
+RESUMO:
+3 a 4 frases resumindo os principais riscos identificados nas duas vias, pontos de atenção prioritários e urgência de intervenção.
+END_RESUMO
+
+DIAGNOSTICO_V1:
+3 a 4 frases resumindo o que foi constatado na Via 1: principais riscos identificados (sinalização, visibilidade, velocidade, etc.) e qualquer achado relevante dos demais critérios.
+END_DIAGNOSTICO_V1
+
+DIAGNOSTICO_V2:
+3 a 4 frases resumindo o que foi constatado na Via 2: principais riscos identificados (sinalização, visibilidade, velocidade, etc.) e qualquer achado relevante dos demais critérios.
+END_DIAGNOSTICO_V2
+
+INTERVENCOES:
+- [CUSTO ZERO] descrição da intervenção (Via 1 ou Via 2)
+- [BAIXO CUSTO] descrição da intervenção (Via 1 ou Via 2)
+- [MÉDIO CUSTO] descrição da intervenção (Via 1 ou Via 2)
+Liste de 3 a 8 intervenções reais identificadas no diagnóstico, sempre começando cada linha com "- [CUSTO ZERO]", "- [BAIXO CUSTO]" ou "- [MÉDIO CUSTO]". Não use numeração. Não omita o marcador de custo.
+END_INTERVENCOES
+
+CRITERIOS_V1_JSON:
+{"sinalizacao":V,"velocidade":V,"visibilidade":V,"conflitos":V,"pedestres":V,"geometria":V,"ambiente":V,"organizacao":V,"acessibilidade":V,"campo":V_OU_NULL,"socioeconomico":V,"conectividade":V,"resiliencia":V,"horario":V}
+END_JSON_V1
+
+CRITERIOS_V2_JSON:
+{"sinalizacao":V,"velocidade":V,"visibilidade":V,"conflitos":V,"pedestres":V,"geometria":V,"ambiente":V,"organizacao":V,"acessibilidade":V,"campo":V_OU_NULL,"socioeconomico":V,"conectividade":V,"resiliencia":V,"horario":V}
+END_JSON_V2
+
+SUBCRIT_V1_JSON:
+{"placa_pare":V,"placa_conv":V,"macv":V,"pintura_pare":V,"faixa_exist":V,"faixa_pos":V,"setas":V,"stop_bar":V,"horiz":V,"daylighting":V,"vel_real":V,"vel_exc":V,"vel_red":V,"vis_carro":V,"vis_muro":V,"vis_arvore":V,"vis_poste":V,"vis_curva":V,"vis_ilum":V,"conf_conv":V,"conf_4x4":V,"conf_esq":V,"ped_escola":V,"ped_comercio":V,"ped_ciclo":V,"ped_informal":V,"ped_ambul":V,"geo_ang":V,"geo_larg":V,"geo_faix":V,"geo_curva":V,"geo_ilha":V,"amb_polo":V,"amb_escola":V,"amb_term":V,"amb_com":V,"amb_assist":V,"org_tach":V,"org_estr":V,"org_pint":V,"org_ilha":V,"org_ord":V,"ac_meio":V,"ac_rampa":V,"ac_tatil":V,"ac_calc":V,"ac_caminh":V,"ev_pref":V_OU_NULL,"ev_vel":V_OU_NULL,"ev_ilum":V_OU_NULL,"ev_dren":V_OU_NULL,"ev_ultra":V_OU_NULL,"ev_hist":V_OU_NULL,"ev_relat":V_OU_NULL,"se_equip":V,"se_mobil":V,"se_idade":V,"se_motor":V,"se_inform":V,"se_pcd":V,"se_aband":V,"cn_ciclo":V,"cn_parada":V,"cn_escolar":V,"cn_passeio":V,"rc_sombra":V,"rc_solo":V,"rc_sol":V,"rc_pavim":V,"hr_escolar":V,"hr_comercial":V,"hr_noturno":V,"hr_sazonal":V}
+END_SUBCRIT_V1
+
+SUBCRIT_V2_JSON:
+{"placa_pare":V,"placa_conv":V,"macv":V,"pintura_pare":V,"faixa_exist":V,"faixa_pos":V,"setas":V,"stop_bar":V,"horiz":V,"daylighting":V,"vel_real":V,"vel_exc":V,"vel_red":V,"vis_carro":V,"vis_muro":V,"vis_arvore":V,"vis_poste":V,"vis_curva":V,"vis_ilum":V,"conf_conv":V,"conf_4x4":V,"conf_esq":V,"ped_escola":V,"ped_comercio":V,"ped_ciclo":V,"ped_informal":V,"ped_ambul":V,"geo_ang":V,"geo_larg":V,"geo_faix":V,"geo_curva":V,"geo_ilha":V,"amb_polo":V,"amb_escola":V,"amb_term":V,"amb_com":V,"amb_assist":V,"org_tach":V,"org_estr":V,"org_pint":V,"org_ilha":V,"org_ord":V,"ac_meio":V,"ac_rampa":V,"ac_tatil":V,"ac_calc":V,"ac_caminh":V,"ev_pref":V_OU_NULL,"ev_vel":V_OU_NULL,"ev_ilum":V_OU_NULL,"ev_dren":V_OU_NULL,"ev_ultra":V_OU_NULL,"ev_hist":V_OU_NULL,"ev_relat":V_OU_NULL,"se_equip":V,"se_mobil":V,"se_idade":V,"se_motor":V,"se_inform":V,"se_pcd":V,"se_aband":V,"cn_ciclo":V,"cn_parada":V,"cn_escolar":V,"cn_passeio":V,"rc_sombra":V,"rc_solo":V,"rc_sol":V,"rc_pavim":V,"hr_escolar":V,"hr_comercial":V,"hr_noturno":V,"hr_sazonal":V}
+END_SUBCRIT_V2
+
+IMI_JSON:
+{"imi_planmob":V_OU_NULL,"imi_estrutura":V_OU_NULL,"imi_onu":V_OU_NULL,"imi_nacto":V_OU_NULL,"imi_orcamento":V_OU_NULL,"imi_manutencao":V_OU_NULL}
+END_IMI
+Nota sobre IMI: 6 subcritérios, escala 0.0–3.0 cada, calculados por MÉDIA. Estime com base no porte e perfil institucional típico do município informado. Use null se não houver base mínima para estimar.`;
+
+  try{
+    let res, data;
+    try {
+      res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,messages:[{role:"user",content:prompt}]})
+      });
+    } catch(fetchErr) {
+      throw new Error("Erro de conexão: "+fetchErr.message+". Verifique sua conexão com a internet.");
+    }
+    try { data=await res.json(); } catch(jsonErr) { throw new Error("Resposta inválida da API (status "+res.status+")."); }
+    if(data.error)throw new Error(data.error.message||"Erro da API: "+JSON.stringify(data.error));
+    const txt=data.content?.map(b=>b.text||"").join("")||"";
+    if(!txt)throw new Error("Resposta vazia da API.");
+    const parsed=parseAnalise(txt);
+    if(parsed.erroCruzamento){
+      clearInterval(msgTimer);
+      setState({erros:{api:"⚠️ Cruzamento não identificado: "+parsed.erroCruzamento+" Verifique os nomes das vias e tente novamente, ou confirme presencialmente se essas vias se encontram."},step:"input"});
+      return;
+    }
+    if(!parsed.critV1||!parsed.critV2||Object.keys(parsed.critV1).length<8||Object.keys(parsed.critV2).length<8)throw new Error("Resposta incompleta (Via 1: "+Object.keys(parsed.critV1||{}).length+" · Via 2: "+Object.keys(parsed.critV2||{}).length+" critérios). Tente novamente.");
+    const scoresV1=CRITERIOS.map(c=>({...c,score:parsed.critV1[c.id]??null}));
+    const scoresV2=CRITERIOS.map(c=>({...c,score:parsed.critV2[c.id]??null}));
+    const validosV1=scoresV1.filter(c=>c.score!==null&&c.score!==undefined);
+    const validosV2=scoresV2.filter(c=>c.score!==null&&c.score!==undefined);
+    if(validosV1.length<5||validosV2.length<5)throw new Error("Dados insuficientes (Via 1: "+validosV1.length+" · Via 2: "+validosV2.length+" critérios válidos). Tente novamente.");
+    const icv1=Math.round(validosV1.reduce((a,b)=>a+b.score,0)/validosV1.length*10)/10;
+    const icv2=Math.round(validosV2.reduce((a,b)=>a+b.score,0)/validosV2.length*10)/10;
+    const total=Math.round((icv1+icv2)/2*10)/10;
+    clearInterval(msgTimer);
+    if(parsed.imi&&Object.values(parsed.imi).some(v=>v!==null&&v!==undefined)){
+      salvarImiCidade(f.cidade,f.uf,parsed.imi);
+    }
+    setState({resultado:{scoresV1,scoresV2,icv1,icv2,total,subcritV1:parsed.subcritV1,subcritV2:parsed.subcritV2,imi:parsed.imi,intervencoes:parsed.intervencoes||[],resumo:parsed.resumo||"",diagnosticoV1:parsed.diagnosticoV1||"",diagnosticoV2:parsed.diagnosticoV2||"",cruzamento:{rua1,rua2,bairro:f.bairro,cidade:f.cidade,uf:f.uf,prioridade:f.prioridade,obs:f.obs}},step:"resultado"});
+  }catch(e){clearInterval(msgTimer);setState({erros:{api:e.message},step:"input"});}
+}
+
+// ── HELPERS DOM ────────────────────────────────────────────────────────
+function el(tag,props,...ch){
+  const e=document.createElement(tag);
+  if(props)Object.entries(props).forEach(([k,v])=>{
+    if(k==="style"&&typeof v==="object")Object.assign(e.style,v);
+    else if(k.startsWith("on"))e.addEventListener(k.slice(2).toLowerCase(),v);
+    else if(k==="className")e.className=v;
+    else e.setAttribute(k,v);
+  });
+  ch.flat().forEach(c=>{if(c!=null&&c!==false)e.append(typeof c==="string"?document.createTextNode(c):c);});
+  return e;
+}
+function mkInp(key,placeholder,label,req){
+  const errs=S.erros,touched=S.touched,f=S.form;
+  const inp=el("input",{className:"inp"+(errs[key]&&touched[key]?" err":""),placeholder,id:"inp_"+key});
+  inp.value=f[key]||"";
+  inp.addEventListener("input",e=>{S.form[key]=e.target.value;if(S.touched[key])S.erros=validar();updateErrs();});
+  inp.addEventListener("blur",()=>{S.touched[key]=true;S.erros=validar();updateErrs();});
+  const errDiv=el("div",{className:"em",id:"err_"+key,style:{display:errs[key]&&touched[key]?"block":"none"}},"⚠ "+(errs[key]||""));
+  return el("div",{style:{marginBottom:"10px"}},
+    el("label",{className:"lbl"},label,req?el("span",{style:{color:"#E24B4A"}}," *"):null),
+    inp,errDiv
+  );
+}
+function mkSel(key,opts){
+  const s=el("select",{className:"sel",id:"sel_"+key},
+    ...opts.map(o=>el("option",{value:o},o)));
+  s.value=S.form[key]||opts[0];
+  s.addEventListener("change",e=>{S.form[key]=e.target.value;});
+  return s;
+}
+function updateErrs(){
+  ["rua1","rua2","cidade"].forEach(k=>{
+    const inp=document.getElementById("inp_"+k);
+    const errDiv=document.getElementById("err_"+k);
+    if(inp){inp.className="inp"+(S.erros[k]&&S.touched[k]?" err":"");}
+    if(errDiv){errDiv.style.display=S.erros[k]&&S.touched[k]?"block":"none";errDiv.textContent="⚠ "+(S.erros[k]||"");}
+  });
+  const apiErr=document.getElementById("api_err");
+  if(apiErr){apiErr.style.display=S.erros.api?"block":"none";if(S.erros.api)apiErr.textContent=S.erros.api;}
+}
+
+// ── RENDER VIEWS ──────────────────────────────────────────────────────
+function renderInput(){
+  const f=S.form;
+  return el("div",{className:"fade",style:{padding:"16px"}},
+    el("div",{style:{marginBottom:"16px"}},
+      el("div",{style:{display:"flex",alignItems:"baseline",gap:"6px",marginBottom:"6px"}},
+        el("span",{style:{fontSize:"11px",fontWeight:"700",color:"#9DA7B0",letterSpacing:".15em",textTransform:"uppercase"}},"MÉTODO"),
+        el("span",{style:{fontSize:"26px",fontWeight:"900",color:"#D4A017",lineHeight:"1"}},"VISTA",el("span",{style:{color:"#E6EDF3"}},"+"))
+      ),
+      el("h1",{style:{fontSize:"16px",fontWeight:"600",marginBottom:"5px",lineHeight:"1.3",color:"#C9D1D9"}},"Diagnóstico Socioviário de Cruzamentos Sem Semáforos"),
+      el("p",{style:{fontSize:"13px",color:"#7A8590",marginTop:"2px"}},"Análise por inteligência artificial"),
+      el("p",{style:{fontSize:"11px",color:"#D4A017",marginTop:"5px",fontWeight:"600"}},"🕐 Build: "+BUILD_DATA)
+    ),
+
+    // MAPA INTERATIVO
+    el("div",{className:"card",style:{padding:"0",overflow:"hidden"}},
+      el("div",{style:{padding:"12px 14px 8px",borderBottom:"1px solid #21262D"}},
+        el("div",{className:"div-line"},el("span",{},"📍 Clique no cruzamento que deseja diagnosticar")),
+        el("p",{style:{fontSize:"12px",color:"#8B949E",marginTop:"4px",lineHeight:"1.5"}},"Clique na intersecção das duas ruas no mapa — os campos abaixo serão preenchidos automaticamente.")
+      ),
+      el("div",{id:"vista-map",style:{width:"100%",height:"260px",background:"#161B22",display:"flex",alignItems:"center",justifyContent:"center"}}),
+      (()=>{
+        // Inicializar ou atualizar mapa
+        setTimeout(()=>{
+          const container=document.getElementById("vista-map");
+          if(!container)return;
+          if(window._vistaMap){
+            // Já existe — só centralizar se cidade mudou
+            return;
+          }
+          if(!window.google||!window.google.maps){
+            container.innerHTML='<div style="text-align:center;color:#8B949E;font-size:12px;padding:20px"><div style="font-size:24px;margin-bottom:8px">🗺️</div><div>Mapa disponível após configurar a chave Google Maps API no Vercel</div><div style="font-size:10px;margin-top:6px;color:#484F58">Variável: GOOGLE_MAPS_API_KEY</div><div style="margin-top:12px;font-size:11px;color:#D4A017">Por ora, preencha os campos manualmente abaixo ↓</div></div>';
+            return;
+          }
+          const geocoder=new google.maps.Geocoder();
+          const cidadeRef=f.cidade&&f.uf?f.cidade+", "+f.uf+", Brasil":"Maceió, AL, Brasil";
+          geocoder.geocode({address:cidadeRef},function(res,st){
+            const center=st==="OK"?res[0].geometry.location:{lat:-27.5954,lng:-48.548};
+            const map=new google.maps.Map(container,{
+              center,zoom:14,
+              mapTypeId:"roadmap",
+              styles:[
+                {elementType:"geometry",stylers:[{color:"#1d2c4d"}]},
+                {elementType:"labels.text.fill",stylers:[{color:"#8ec3b9"}]},
+                {elementType:"labels.text.stroke",stylers:[{color:"#1a3646"}]},
+                {featureType:"road",elementType:"geometry",stylers:[{color:"#304a7d"}]},
+                {featureType:"road",elementType:"labels.text.fill",stylers:[{color:"#98a5be"}]},
+                {featureType:"water",elementType:"geometry",stylers:[{color:"#0e1626"}]},
+              ],
+              disableDefaultUI:false,
+              zoomControl:true,
+              streetViewControl:false,
+              mapTypeControl:false,
+            });
+            window._vistaMap=map;
+            let marker=null;
+            map.addListener("click",function(e){
+              const lat=e.latLng.lat(),lng=e.latLng.lng();
+              if(marker)marker.setMap(null);
+              marker=new google.maps.Marker({position:{lat,lng},map,icon:{path:google.maps.SymbolPath.CIRCLE,scale:10,fillColor:"#D4A017",fillOpacity:1,strokeColor:"#fff",strokeWeight:2}});
+              geocoder.geocode({location:{lat,lng}},function(results,status){
+                if(status!=="OK"||!results[0])return;
+                // Extrair ruas do resultado
+                const addrs=results.filter(r=>r.types.includes("intersection")||r.types.includes("route")||r.types.includes("street_address"));
+                const comps=results[0].address_components;
+                const route=comps.find(c=>c.types.includes("route"));
+                const sublocal=comps.find(c=>c.types.includes("sublocality")||c.types.includes("neighborhood"));
+                const city=comps.find(c=>c.types.includes("administrative_area_level_2"));
+                const state=comps.find(c=>c.types.includes("administrative_area_level_1"));
+                // Tentar pegar 2 ruas do intersection
+                const inter=results.find(r=>r.types.includes("intersection"));
+                if(inter){
+                  const partes=inter.formatted_address.split("&").map(s=>s.trim().split(",")[0].trim());
+                  if(partes.length>=2){
+                    S.form.rua1=partes[0];
+                    S.form.rua2=partes[1];
+                  }
+                } else if(route){
+                  S.form.rua1=route.long_name;
+                  S.form.rua2="";
+                }
+                if(sublocal)S.form.bairro=sublocal.long_name;
+                if(city)S.form.cidade=city.long_name;
+                if(state)S.form.uf=state.short_name;
+                render();
+                // Feedback visual
+                const info=new google.maps.InfoWindow({content:'<div style="font-size:12px;color:#111;font-family:Inter,sans-serif"><strong>✓ Cruzamento selecionado</strong><br><span style="color:#666">Verifique os campos abaixo</span></div>'});
+                info.open(map,marker);
+                setTimeout(()=>info.close(),2500);
+              });
+            });
+          });
+        },100);
+        return null;
+      })()
+    ),
+
+    // Vias
+    el("div",{className:"card"},
+      el("div",{className:"div-line"},el("span",{},"Identificação das vias")),
+      el("div",{style:{display:"grid",gridTemplateColumns:"100px 1fr",gap:"10px",marginBottom:"12px"}},
+        el("div",{},el("label",{className:"lbl"},"Tipo"),mkSel("tipo1",TIPOS)),
+        mkInp("rua1","Nome da via","Via 1 — secundária (cede passagem)",true)
+      ),
+      el("div",{style:{display:"grid",gridTemplateColumns:"100px 1fr",gap:"10px"}},
+        el("div",{},el("label",{className:"lbl"},"Tipo"),mkSel("tipo2",TIPOS)),
+        mkInp("rua2","Nome da via","Via 2 — preferencial",true)
+      )
+    ),
+    // Localização
+    el("div",{className:"card"},
+      el("div",{className:"div-line"},el("span",{},"Localização")),
+      el("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 70px",gap:"10px"}},
+        el("div",{style:{gridColumn:"1/-1"}},el("label",{className:"lbl"},"Bairro"),
+          (()=>{const i=el("input",{className:"inp",placeholder:"Ex: Ponta Verde",id:"inp_bairro"});i.value=f.bairro||"";i.addEventListener("input",e=>{S.form.bairro=e.target.value;});return i;})()
+        ),
+        mkInp("cidade","","Cidade",true),
+        el("div",{},el("label",{className:"lbl"},"UF"),mkSel("uf",UFS))
+      )
+    ),
+    // Prioridade (opcional)
+    el("div",{className:"card"},
+      el("div",{className:"div-line"},el("span",{},"Motivo da solicitação"),el("span",{style:{color:"#8B949E",textTransform:"none",fontWeight:"400",letterSpacing:"0",fontSize:"10px"}},"(opcional)")),
+      el("p",{style:{fontSize:"11px",color:"#8B949E",marginBottom:"10px",lineHeight:"1.6"}},"Caso já saiba de alguma informação sobre este cruzamento, selecione abaixo — isso ajuda a IA a contextualizar o diagnóstico. Não selecionar nada não afeta o cálculo do ICV+."),
+      el("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px"}},
+        ...PRIOS.map(p=>{
+          const isSel=f.prioridade===p.value;
+          const btn=el("button",{className:"prio-btn",
+            style:{borderColor:isSel?p.text:"#30363D",background:isSel?p.cor+"22":"#0D1117"},
+            onClick:()=>{S.form.prioridade=isSel?null:p.value;render();}},
+            el("div",{style:{fontSize:"14px",fontWeight:"600",color:isSel?p.text:"#C9D1D9"}},p.emoji+" "+p.label),
+            el("div",{style:{fontSize:"12px",color:isSel?p.text:"#8B949E",marginTop:"2px",lineHeight:"1.4"}},p.sub)
+          );
+          return btn;
+        })
+      ),
+      el("button",{style:{marginTop:"8px",background:"transparent",border:"none",color:f.prioridade?"#D4A017":"#484F58",fontSize:"10px",cursor:f.prioridade?"pointer":"default",textDecoration:f.prioridade?"underline":"none",fontFamily:"inherit"},onClick:()=>{if(f.prioridade){S.form.prioridade=null;render();}}},f.prioridade?"Limpar seleção":"Nenhum motivo selecionado")
+    ),
+    // Observações
+    el("div",{className:"card"},
+      el("div",{className:"div-line"},el("span",{},"Observações de campo"),el("span",{style:{color:"#9DA7B0",textTransform:"none",fontWeight:"400",letterSpacing:"0",fontSize:"11px"}},"(opcional — enriquece o diagnóstico)")),
+      (()=>{const ta=el("textarea",{className:"ta",placeholder:"Informe: posição das faixas, obstáculos na esquina, rampas de acesso, histórico de acidentes, comportamento dos motoristas, iluminação, alagamentos...",id:"inp_obs"});ta.addEventListener("input",e=>{S.form.obs=e.target.value;});return ta;})(),
+      el("div",{className:"hint"},"Quanto mais detalhes, mais preciso o diagnóstico e os indicadores de campo.")
+    ),
+    // Critérios expandíveis
+    el("div",{className:"card"},
+      el("div",{className:"div-line"},el("span",{},"14 critérios + IMI")),
+      el("div",{style:{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:"4px"}},
+        ...CRITERIOS.map(c=>{
+          const wrap=el("div",{style:{cursor:"pointer",padding:"4px 0"}});
+          const hdr2=el("div",{style:{fontSize:"11px",color:c.novo?"#9B7BC6":c.destaque?"#D4A017":c.campoCampo?"#8B949E":"#C9D1D9"}},
+            el("span",{style:{color:c.novo?"#9B7BC6":"#D4A017",marginRight:"4px"}},"›"),
+            c.label,
+            c.destaque?el("span",{style:{fontSize:"9px",color:"#D4A017",marginLeft:"4px"}},"★"):null,
+            c.campoCampo?el("span",{style:{fontSize:"9px",color:"#666",marginLeft:"4px"}},"📋"):null,
+            c.novo?el("span",{style:{fontSize:"8px",color:"#fff",background:"#7B5BA6",padding:"1px 5px",borderRadius:"6px",marginLeft:"4px"}},"NOVO"):null
+          );
+          const sub2=el("div",{style:{fontSize:"11.5px",color:"#9DA7B0",lineHeight:"1.5",marginTop:"2px"}},c.desc);
+          let expanded=false;
+          const det=el("div",{style:{display:"none",background:"#0D1117",borderRadius:"5px",padding:"7px 9px",marginTop:"4px",fontSize:"11px",color:"#8B949E",lineHeight:"1.7"}},
+            ...c.subcrit.map(s=>el("div",{style:{color:s.includes("★")?"#D4A017":"#8B949E"}},"• "+s)),
+            el("div",{style:{color:"#9DA7B0",marginTop:"6px",fontSize:"11.5px",lineHeight:"1.5",background:"#161B22",padding:"6px 9px",borderRadius:"6px"}},"ⓘ "+c.nota)
+          );
+          wrap.addEventListener("click",()=>{expanded=!expanded;det.style.display=expanded?"block":"none";});
+          wrap.append(hdr2,sub2,det);
+          return wrap;
+        })
+      )
+    ),
+    el("div",{className:"card",style:{border:"1px solid #7B5BA660"}},
+      el("div",{className:"div-line"},el("span",{style:{color:"#9B7BC6"}},"IMI · Índice de Maturidade Institucional")),
+      el("p",{style:{fontSize:"11px",color:"#8B949E",lineHeight:"1.6"}},"Avaliado uma vez por município (não muda entre cruzamentos). A IA estima com base no porte e perfil institucional típico da cidade informada — confirme depois com dados reais da prefeitura."),
+      (()=>{
+        const imiSalvo=carregarImiCidade(S.form.cidade,S.form.uf);
+        if(!imiSalvo)return null;
+        const imiTotSalvo=totalImi(imiSalvo);
+        const imiNivSalvo=nivelImi(imiTotSalvo);
+        return el("div",{style:{display:"flex",alignItems:"center",gap:8,background:"#27500A22",border:"1px solid #27500A55",borderRadius:7,padding:"7px 10px",marginTop:6}},
+          el("span",{style:{fontSize:11,color:"#6DB33F",flex:1}},"✓ IMI já calculado para "+S.form.cidade+"/"+S.form.uf+" ("+imiTotSalvo.toFixed(1)+" · "+imiNivSalvo.label+") — será reaproveitado automaticamente"),
+          el("button",{style:{background:"transparent",border:"none",color:"#E24B4A",fontSize:10,cursor:"pointer",textDecoration:"underline",fontFamily:"inherit",whiteSpace:"nowrap"},onClick:()=>{try{localStorage.removeItem(chaveImi(S.form.cidade,S.form.uf));}catch(e){}setState({});}},"Limpar")
+        );
+      })()
+    ),
+    el("div",{id:"api_err",style:{fontSize:"12px",color:"#F09595",marginBottom:"12px",padding:"10px 14px",background:"#FCEBEB22",borderRadius:"8px",borderLeft:"3px solid #F09595",display:S.erros.api?"block":"none"}},S.erros.api||""),
+    el("button",{className:"btn",onClick:analisar},"Gerar diagnóstico ICV+ →")
+  );
+}
+
+function renderLoading(){
+  return el("div",{style:{textAlign:"center",padding:"70px 20px"}},
+    el("div",{style:{width:"46px",height:"46px",border:"3px solid #21262D",borderTop:"3px solid #D4A017",borderRadius:"50%",margin:"0 auto 18px",animation:"spin 1s linear infinite"}}),
+    el("div",{style:{fontSize:"14px",fontWeight:"500",marginBottom:"5px",color:"#E6EDF3"}},S.loadMsg),
+    el("div",{style:{fontSize:"11px",color:"#9DA7B0"}},"MÉTODO VISTA+ · Matriz ICV+ (14 critérios) + IMI")
+  );
+}
+
+function renderResultado(){
+  const r=S.resultado,nivel=getNivel(r.total);
+  const pct=Math.round((r.total/3)*100);
+  const prioObj=PRIOS.find(p=>p.value===r.cruzamento.prioridade)||null;
+  return el("div",{className:"fade",style:{padding:"16px"}},
+    // Cabeçalho resultado
+    el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"12px",gap:"10px"}},
+      el("div",{},
+        el("div",{style:{fontSize:"10px",color:"#8B949E",textTransform:"uppercase",letterSpacing:".06em",marginBottom:"3px"}},r.cruzamento.cidade+"/"+r.cruzamento.uf),
+        el("h2",{style:{fontSize:"16px",fontWeight:"600",lineHeight:"1.3",marginBottom:"2px",color:"#E6EDF3"}},r.cruzamento.rua1),
+        el("div",{style:{color:"#8B949E",fontSize:"14px"}},"× "+r.cruzamento.rua2),
+        r.cruzamento.bairro?el("div",{style:{fontSize:"12px",color:"#9DA7B0",marginTop:"2px"}},r.cruzamento.bairro):null,
+        prioObj?el("span",{style:{fontSize:"10px",padding:"2px 8px",borderRadius:"20px",background:prioObj.cor,color:prioObj.text,fontWeight:"500",display:"inline-block",marginTop:"5px"}},prioObj.emoji+" Motivo: "+prioObj.label):null
+      ),
+      el("div",{style:{textAlign:"center",background:nivel.bg+"33",border:"1.5px solid "+nivel.bg,borderRadius:"12px",padding:"12px 14px",flexShrink:"0"}},
+        el("div",{style:{fontSize:"28px",fontWeight:"700",color:nivel.cor,lineHeight:"1"}},r.total),
+        el("div",{style:{fontSize:"9px",color:nivel.cor,marginTop:"1px"}},"/3"),
+        el("div",{style:{fontSize:"10px",fontWeight:"600",color:nivel.cor,marginTop:"4px",background:nivel.bg,padding:"2px 10px",borderRadius:"20px"}},nivel.label)
+      )
+    ),
+    // Aviso permanente — diagnóstico sem confirmação visual
+    el("div",{style:{background:"#1A3A5C33",border:"1px solid #1A3A5C",borderRadius:"7px",padding:"8px 12px",marginBottom:"12px",fontSize:"11px",color:"#7FB3E0",lineHeight:"1.5"}},
+      "ℹ️ Diagnóstico preliminar gerado remotamente, sem confirmação visual do cruzamento. Verifique se as vias informadas realmente se cruzam antes de usar este resultado, e confirme em campo antes de qualquer decisão de investimento."
+    ),
+    // Barra geral
+    el("div",{style:{marginBottom:"12px"}},
+      el("div",{style:{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"#8B949E",marginBottom:"3px"}},
+        el("span",{},"Criticidade geral"),el("span",{},pct+"%")
+      ),
+      el("div",{className:"bar-bg",style:{height:"7px"}},
+        el("div",{className:"bar-fill",style:{width:pct+"%",background:nivel.cor}})
+      )
+    ),
+    // Resumo
+    r.resumo?el("div",{style:{background:"#161B22",borderLeft:"3px solid #D4A017",borderRadius:"0 7px 7px 0",padding:"10px 12px",marginBottom:"10px",fontSize:"12px",color:"#C9D1D9",lineHeight:"1.7"}},r.resumo):null,
+    // Diagnóstico por via
+    (r.diagnosticoV1||r.diagnosticoV2)?el("div",{style:{background:"#FAEEDA22",border:"1px solid #EF9F2755",borderLeft:"3px solid #EF9F27",borderRadius:"0 7px 7px 0",padding:"10px 12px",marginBottom:"10px",fontSize:"12px",color:"#EF9F27",lineHeight:"1.6"}},
+      el("div",{style:{fontSize:"9px",fontWeight:"600",textTransform:"uppercase",color:"#8a5a00",marginBottom:"3px"}},"📋 Diagnóstico por via"),
+      r.diagnosticoV1?el("div",{style:{marginBottom:r.diagnosticoV2?"6px":"0"}},el("strong",{},"Via 1: "),r.diagnosticoV1):null,
+      r.diagnosticoV2?el("div",{},el("strong",{},"Via 2: "),r.diagnosticoV2):null
+    ):null,
+    // Observações
+    r.cruzamento.obs?el("div",{style:{background:"#0D1117",border:"1px solid #21262D",borderRadius:"7px",padding:"8px 12px",marginBottom:"10px",fontSize:"11px",color:"#8B949E"}},
+      el("span",{style:{fontWeight:"600",color:"#9DA7B0",fontSize:"10px",textTransform:"uppercase",letterSpacing:".06em"}},"Obs. · "),r.cruzamento.obs
+    ):null,
+    // ICV+ por via
+    el("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"12px"}},
+      [["1",r.cruzamento.rua1,r.icv1],["2",r.cruzamento.rua2,r.icv2]].map(([n,via,ic])=>{
+        const nv=getNivel(ic);
+        return el("div",{style:{background:nv.bg+"22",border:"1px solid "+nv.bg,borderRadius:"9px",padding:"9px 10px",textAlign:"center"}},
+          el("div",{style:{fontSize:"9px",color:"#8B949E",marginBottom:"2px"}},"Via "+n),
+          el("div",{style:{fontSize:"10px",color:"#C9D1D9",marginBottom:"4px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},via),
+          el("div",{style:{fontSize:"22px",fontWeight:"700",color:nv.cor,lineHeight:"1"}},ic),
+          el("div",{style:{fontSize:"9px",fontWeight:"600",color:nv.cor}},nv.label)
+        );
+      })
+    ),
+    // Alerta de risco concentrado extremo
+    (()=>{
+      const al1=alertasCriticos(r.subcritV1||{}).map(a=>({...a,via:"1"}));
+      const al2=alertasCriticos(r.subcritV2||{}).map(a=>({...a,via:"2"}));
+      const todos=[...al1,...al2];
+      if(todos.length===0)return null;
+      return el("div",{className:"card",style:{border:"2px solid #791F1F",background:"#FCEBEB10",marginBottom:"12px"}},
+        el("div",{style:{display:"flex",alignItems:"center",gap:6,marginBottom:8}},
+          el("span",{style:{fontSize:16}},"⚠️"),
+          el("span",{style:{fontSize:11,fontWeight:700,color:"#E24B4A",textTransform:"uppercase",letterSpacing:".04em"}},"Alerta de risco concentrado extremo")
+        ),
+        ...todos.map(a=>el("div",{style:{fontSize:11.5,color:"#F09595",marginBottom:4,paddingLeft:8,borderLeft:"2px solid #791F1F"}},el("strong",{},a[1])," — Via "+a.via))
+      );
+    })(),
+    // Critérios — Via 1
+    el("div",{className:"card"},
+      el("div",{className:"lbl",style:{marginBottom:"10px"}},"Matriz ICV+ — Via 1 ("+r.cruzamento.rua1+")"),
+      ...r.scoresV1.map(c=>{
+        const isNull=c.score===null||c.score===undefined;
+        const p2=(c.score/3)*100;
+        const bc=isNull?"#484F58":c.score>=2.5?"#E24B4A":c.score>=1.5?"#EF9F27":"#639922";
+        return el("div",{style:{marginBottom:"10px",padding:c.destaque?"7px 9px":c.campoCampo?"7px 9px":"0",background:c.destaque?"#D4A01710":c.campoCampo?"#30363D18":"transparent",borderRadius:c.destaque||c.campoCampo?"7px":"0",border:c.destaque?"1px solid #D4A01730":c.campoCampo?"1px dashed #30363D":"none"}},
+          el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}},
+            el("div",{style:{flex:"1"}},
+              el("div",{style:{display:"flex",alignItems:"center",gap:"4px"}},
+                el("span",{style:{fontSize:"12px",color:c.destaque?"#D4A017":c.campoCampo?"#8B949E":"#E6EDF3"}},c.label),
+                c.destaque?el("span",{style:{fontSize:"9px",color:"#D4A017"}},"★"):null,
+                c.campoCampo?el("span",{style:{fontSize:"9px",color:"#666"}},"📋 indicadores"):null,
+                c.novo?el("span",{style:{fontSize:"8px",color:"#fff",background:"#7B5BA6",padding:"1px 5px",borderRadius:"6px"}},"NOVO"):null,
+                el("span",{style:{fontSize:"10.5px",color:"#9DA7B0"}},c.desc)
+              ),
+              !isNull?el("div",{className:"bar-bg"},el("div",{className:"bar-fill",style:{width:p2+"%",background:bc}})):null
+            ),
+            el("span",{style:{fontSize:"13px",fontWeight:"700",color:bc,minWidth:"32px",textAlign:"right",marginLeft:"6px",fontStyle:isNull?"italic":"normal"}},isNull?"est.":c.score.toFixed(1))
+          )
+        );
+      })
+    ),
+    // Critérios — Via 2
+    el("div",{className:"card"},
+      el("div",{className:"lbl",style:{marginBottom:"10px"}},"Matriz ICV+ — Via 2 ("+r.cruzamento.rua2+")"),
+      ...r.scoresV2.map(c=>{
+        const isNull=c.score===null||c.score===undefined;
+        const p2=(c.score/3)*100;
+        const bc=isNull?"#484F58":c.score>=2.5?"#E24B4A":c.score>=1.5?"#EF9F27":"#639922";
+        return el("div",{style:{marginBottom:"10px",padding:c.destaque?"7px 9px":c.campoCampo?"7px 9px":"0",background:c.destaque?"#D4A01710":c.campoCampo?"#30363D18":"transparent",borderRadius:c.destaque||c.campoCampo?"7px":"0",border:c.destaque?"1px solid #D4A01730":c.campoCampo?"1px dashed #30363D":"none"}},
+          el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}},
+            el("div",{style:{flex:"1"}},
+              el("div",{style:{display:"flex",alignItems:"center",gap:"4px"}},
+                el("span",{style:{fontSize:"12px",color:c.destaque?"#D4A017":c.campoCampo?"#8B949E":"#E6EDF3"}},c.label),
+                c.destaque?el("span",{style:{fontSize:"9px",color:"#D4A017"}},"★"):null,
+                c.campoCampo?el("span",{style:{fontSize:"9px",color:"#666"}},"📋 indicadores"):null,
+                c.novo?el("span",{style:{fontSize:"8px",color:"#fff",background:"#7B5BA6",padding:"1px 5px",borderRadius:"6px"}},"NOVO"):null,
+                el("span",{style:{fontSize:"10.5px",color:"#9DA7B0"}},c.desc)
+              ),
+              !isNull?el("div",{className:"bar-bg"},el("div",{className:"bar-fill",style:{width:p2+"%",background:bc}})):null
+            ),
+            el("span",{style:{fontSize:"13px",fontWeight:"700",color:bc,minWidth:"32px",textAlign:"right",marginLeft:"6px",fontStyle:isNull?"italic":"normal"}},isNull?"est.":c.score.toFixed(1))
+          )
+        );
+      })
+    ),
+    // IMI
+    r.imi?el("div",{className:"card",style:{border:"1px solid #7B5BA660"}},
+      el("div",{className:"lbl",style:{marginBottom:"10px",color:"#9B7BC6"}},"IMI — Índice de Maturidade Institucional (estimado pela IA)"),
+      ...IMI_SUBCRIT.map(s=>{
+        const v=r.imi[s[0]];
+        const isNull=v===null||v===undefined;
+        const val=isNull?null:parseFloat(v);
+        const bc=isNull?"#484F58":val>=2.5?"#E24B4A":val>=1.5?"#EF9F27":"#639922";
+        return el("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"6px",fontSize:"12px"}},
+          el("span",{style:{color:"#C9D1D9"}},s[1]),
+          el("span",{style:{fontWeight:"700",color:bc}},isNull?"—":val.toFixed(1))
+        );
+      }),
+      (()=>{const tot=totalImi(r.imi),nv=nivelImi(tot);return el("div",{style:{marginTop:"8px",background:nv.bg+"22",border:"1px solid "+nv.bg,borderRadius:"8px",padding:"8px",textAlign:"center"}},
+        el("span",{style:{fontSize:"20px",fontWeight:"700",color:nv.cor}},tot),
+        el("span",{style:{fontSize:"10px",color:"#8B949E"}}," /3 · "),
+        el("span",{style:{fontSize:"11px",fontWeight:"600",color:nv.cor}},nv.label)
+      );})()
+    ):null,
+    // Intervenções
+    (r.intervencoes&&r.intervencoes.length>0)?el("div",{className:"card"},
+      el("div",{className:"lbl",style:{marginBottom:"10px"}},"🔧 Intervenções recomendadas"),
+      ...r.intervencoes.map((item,i)=>{
+        const isCusto=item.includes("[CUSTO ZERO]"),isBaixo=item.includes("[BAIXO CUSTO]");
+        const tBg=isCusto?"#EAF3DE22":isBaixo?"#E6F1FB22":"#FAEEDA22";
+        const tBord=isCusto?"#639922":isBaixo?"#185FA5":"#D4A017";
+        const tCor=isCusto?"#6DB33F":isBaixo?"#4A9EDB":"#D4A017";
+        const tL=isCusto?"Custo zero":isBaixo?"Baixo custo":"Médio custo";
+        const txt=item.replace(/\[.*?\]\s*/,"").trim();
+        return el("div",{style:{display:"flex",gap:"8px",padding:"10px 0",borderBottom:i<r.intervencoes.length-1?"1px solid #21262D":"none",alignItems:"flex-start"}},
+          el("div",{style:{width:"20px",height:"20px",borderRadius:"50%",background:tBord,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"10px",color:"#fff",fontWeight:"700",flexShrink:"0",marginTop:"1px"}},i+1),
+          el("div",{style:{flex:1}},
+            el("span",{style:{fontSize:"10px",padding:"2px 8px",borderRadius:"20px",background:tBord+"22",color:tCor,fontWeight:"600",display:"inline-block",marginBottom:"4px",border:"1px solid "+tBord+"44"}},tL),
+            el("div",{style:{fontSize:"14px",color:"#C9D1D9",lineHeight:"1.6"}},txt)
+          )
+        );
+      })
+    ):null,
+    // Botões
+    el("div",{style:{display:"grid",gridTemplateColumns:"1fr 2fr",gap:"8px",marginTop:"8px"}},
+      el("button",{className:"btn-out",onClick:()=>setState({step:"input",resultado:null,laudoUrl:null})},"← Novo diagnóstico"),
+      S.laudoUrl
+        ?el("a",{href:S.laudoUrl.url,download:S.laudoUrl.nome,className:"btn-dl"},"⬇ Baixar laudo (.html)")
+        :el("button",{className:"btn",onClick:()=>{const res=gerarLaudo(r,nivel);if(res)setState({laudoUrl:res});}},"Gerar laudo para download →")
+    ),
+    S.laudoUrl?el("div",{style:{marginTop:"7px",fontSize:"11px",color:"#8B949E",background:"#161B22",border:"1px solid #21262D",borderRadius:"7px",padding:"9px 12px",lineHeight:"1.6"}},
+      el("strong",{style:{color:"#D4A017"}},"Para PDF:"),
+      " abra o arquivo → Ctrl+P → 'Salvar como PDF' → ative 'Gráficos de fundo' → Salvar."
+    ):null,
+    el("div",{style:{marginTop:"12px",fontSize:"11px",color:"#9DA7B0",textAlign:"center",lineHeight:"1.6"}},
+      "MÉTODO VISTA+ · ICV+ + IMI · Marcos Gomes Rangel"
+    )
+  );
+}
+
+// ── RENDER PRINCIPAL ──────────────────────────────────────────────────
+function render(){
+  const root=document.getElementById("root");root.innerHTML="";
+  // Header
+  const hdr=el("div",{style:{borderBottom:"1px solid #21262D",padding:"10px 18px",display:"flex",alignItems:"center",gap:"8px",position:"sticky",top:"0",background:"#0D1117",zIndex:"10"}},
+    el("div",{style:{width:"30px",height:"30px",background:"#D4A017",borderRadius:"7px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:"700",color:"#0D1117"}},"V+"),
+    el("div",{},
+      el("div",{style:{fontSize:"13px",fontWeight:"600",color:"#E6EDF3"}},
+        "MÉTODO ",el("span",{style:{color:"#D4A017"}},"VISTA+"),
+        el("span",{style:{fontSize:"11px",color:"#9DA7B0",fontWeight:"400"}}," · Plataforma ICV+")
+      ),
+      el("div",{style:{fontSize:"10.5px",color:"#9DA7B0"}},"Diagnóstico Socioviário de Cruzamentos Sem Semáforos nas Cidades"),
+      el("div",{style:{fontSize:"10px",color:"#D4A017",marginTop:"2px",fontWeight:"600"}},"🕐 Build: "+BUILD_DATA)
+    ),
+    S.step==="resultado"&&S.resultado?el("div",{style:{marginLeft:"auto",display:"flex",alignItems:"center",gap:"6px"}},
+      el("div",{style:{fontSize:"16px",fontWeight:"700",color:getNivel(S.resultado.total).cor}},
+        S.resultado.total,el("span",{style:{fontSize:"10px",color:"#9DA7B0"}},"/3")),
+      el("div",{style:{fontSize:"10px",fontWeight:"600",padding:"2px 8px",borderRadius:"20px",background:getNivel(S.resultado.total).bg,color:getNivel(S.resultado.total).cor}},
+        getNivel(S.resultado.total).label)
+    ):null
+  );
+  const body=el("div",{style:{maxWidth:"680px",margin:"0 auto"}});
+  if(S.step==="input")body.append(renderInput());
+  else if(S.step==="loading")body.append(renderLoading());
+  else if(S.step==="resultado")body.append(renderResultado());
+  root.append(hdr,body);
+}
+render();
+</script>
+</body>
+</html>
