@@ -1,11 +1,6 @@
+json
 {
-  "version": 2,
-  "builds": [
-    { "src": "api/diagnostico.js", "use": "@vercel/node" },
-    { "src": "public/**", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/api/diagnostico", "dest": "/api/diagnostico.js" },
-    { "src": "/(.*)", "dest": "/public/$1" }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
