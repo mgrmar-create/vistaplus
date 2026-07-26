@@ -523,11 +523,11 @@ Nota sobre IMI: 6 subcritérios, escala 0.0–3.0 cada, calculados por MÉDIA. E
   try{
     let res, data;
     try {
-      res=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,messages:[{role:"user",content:prompt}]})
-      });
+      res=await fetch("/api/diagnostico",{
+     method:"POST",
+     headers:{"Content-Type":"application/json"},
+     body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,messages:[{role:"user",content:prompt}]})
+   });
     } catch(fetchErr) {
       throw new Error("Erro de conexão: "+fetchErr.message+". Verifique sua conexão com a internet.");
     }
