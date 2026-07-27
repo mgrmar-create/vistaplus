@@ -117,12 +117,7 @@ const NIVEIS=[
 ];
 
 // ── FATORES DE ALERTA CRÍTICO — dispara selo independente do ICV+ geral quando nota = 3.0 ──
-const ALERTA_CRITICO=[
-  ["faixa_exist","Ausência de faixa de pedestre"],
-  ["vis_carro","Veículo estacionado bloqueia SUA visibilidade do fluxo principal"],
-  ["vel_real","Velocidade real praticada excessiva"],
-  ["ev_hist","Histórico de acidentes registrado (BO/DATATRAN)"],
-];
+const ALERTA_CRITICO=ALERTA_CRITICO_V2;
 function alertasCriticos(sc){return ALERTA_CRITICO.filter(([id])=>parseFloat(sc[id])===3.0);}
 const PRIOS=[
   {value:"alta",label:"Alta",sub:"Acidente recente",cor:"#FCEBEB",text:"#791F1F",emoji:"🔴"},
@@ -234,23 +229,7 @@ function gerarLaudo(resultado,nivel){
   rodape;
 
   // PG2
-  const SUBCRIT_MAP={
-    sinalizacao:["placa_pare","placa_conv","macv","pintura_pare","faixa_exist","faixa_pos","setas","stop_bar","horiz","daylighting"],
-    velocidade:["vel_real","vel_exc","vel_red"],
-    visibilidade:["vis_carro","vis_muro","vis_arvore","vis_poste","vis_curva","vis_ilum"],
-    conflitos:["conf_conv","conf_4x4","conf_esq"],
-    pedestres:["ped_escola","ped_comercio","ped_ciclo","ped_informal","ped_ambul"],
-    geometria:["geo_ang","geo_larg","geo_faix","geo_curva","geo_ilha"],
-    ambiente:["amb_polo","amb_escola","amb_term","amb_com","amb_assist"],
-    organizacao:["org_tach","org_estr","org_pint","org_ilha","org_ord"],
-    acessibilidade:["ac_meio","ac_rampa","ac_tatil","ac_calc","ac_caminh"],
-    campo:["ev_pref","ev_vel","ev_ilum","ev_dren","ev_ultra","ev_hist","ev_relat"],
-    socioeconomico:["se_equip","se_mobil","se_idade","se_motor","se_inform","se_pcd","se_aband"],
-    conectividade:["cn_ciclo","cn_parada","cn_escolar","cn_passeio"],
-    resiliencia:["rc_sombra","rc_solo","rc_sol","rc_pavim"],
-    horario:["hr_escolar","hr_comercial","hr_noturno","hr_sazonal"],
-  };
-
+ const SUBCRIT_MAP=SUBCRIT_MAP_V2;
   function tabelaVia(scores,sc,via,n,icv,nv){
     return `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#555;margin-bottom:10px;padding-bottom:3px;border-bottom:2px solid #D4A017">Via ${n} — ${via}</div><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#0D1117;color:#fff"><th style="padding:8px 10px;text-align:left;width:120px;font-size:10px">Critério</th><th style="padding:8px 10px;text-align:left;font-size:10px">Subcritério</th><th style="padding:8px 10px;text-align:right;width:44px;font-size:10px">Nota</th><th style="padding:8px 10px;text-align:center;width:80px;font-size:10px">Nível</th></tr></thead><tbody>`+
     scores.map((c,i)=>{
@@ -406,59 +385,7 @@ ${f.obs?"- Observações: "+f.obs:""}
 
 MATRIZ ICV+ v1.7 OFICIAL — 14 critérios. IMPORTANTE: avalie a Via 1 (secundária) e a Via 2 (preferencial) SEPARADAMENTE — elas têm características frequentemente distintas (ex.: faixa de pedestre pode existir em uma via e não na outra, velocidade praticada é diferente em cada sentido, sinalização pode estar presente só de um lado). Para cada critério, atribua uma nota GERAL e uma nota por subcritério, PARA CADA VIA:
 
-1. SINALIZAÇÃO
-   Subcritérios: placa_pare, placa_conv, macv, pintura_pare, faixa_exist★, faixa_pos★, setas, stop_bar, horiz, daylighting
-   ⚠ faixa_pos: após cruzamento→3.0; sem stop bar→1.5; antes+stop bar→0.0
-
-2. VELOCIDADE PRATICADA
-   Subcritérios: vel_real, vel_exc, vel_red
-   Via local→baixo · coletora→moderado · arterial→2.0–3.0 · rodovia urbana→3.0
-
-3. VISIBILIDADE
-   Subcritérios: vis_carro★, vis_muro, vis_arvore, vis_poste, vis_curva, vis_ilum
-   ⚠ REGRA DE ATRIBUIÇÃO CRÍTICA para vis_carro: este subcritério pergunta "o que bloqueia a visibilidade de QUEM TRAFEGA NESTA VIA", não "onde está o veículo estacionado fisicamente". Um veículo estacionado na Via 2 pode bloquear a visibilidade de quem vem pela Via 1 (e vice-versa) — neste caso, pontue ALTO o vis_carro DA VIA CUJO MOTORISTA TEM A VISÃO BLOQUEADA, mesmo que o veículo esteja fisicamente estacionado na via cruzada. Não pontue o vis_carro da via onde o veículo está estacionado apenas por ele estar lá — pontue onde o bloqueio de visão realmente ocorre. Esta é a "causa invisível de acidente" central do método VISTA+: o motorista de uma via não vê o fluxo da via cruzada a tempo de frear, por causa de um veículo estacionado na OUTRA via. Se não houver bloqueio de visibilidade para nenhuma das duas vias, pontue baixo (0.0–0.5) ou null em ambas; se há bloqueio para uma via mas não para outra, a nota deve refletir essa assimetria com precisão.
-   ⚠ Cada subcritério avalia um obstáculo DIFERENTE e ESPECÍFICO. Se a imagem não mostra muro, marque vis_muro como null — não dê uma nota "de risco geral" para um obstáculo que não existe. Pontue alto APENAS o(s) obstáculo(s) realmente presente(s); os demais ficam null. vis_ilum quase sempre será null em imagens diurnas (sem como avaliar iluminação noturna).
-
-4. CONFLITOS VEICULARES
-   Subcritérios: conf_conv, conf_4x4, conf_esq
-
-5. PEDESTRES E CICLISTAS
-   Subcritérios: ped_escola, ped_comercio, ped_ciclo, ped_informal, ped_ambul★
-
-6. GEOMETRIA VIÁRIA
-   Subcritérios: geo_ang, geo_larg, geo_faix, geo_curva, geo_ilha
-   ⚠ Avalie apenas o que é visível na geometria física do cruzamento. Se o cruzamento é um ortogonal simples sem curvas, largura excessiva ou múltiplas faixas, os subcritérios correspondentes (geo_curva, geo_larg, geo_faix) ficam null — não são "defeitos potenciais", são caraterísticas ausentes.
-
-7. AMBIENTE URBANO
-   Subcritérios: amb_polo, amb_escola, amb_term, amb_com, amb_assist★
-
-8. ORGANIZAÇÃO OPERACIONAL
-   Subcritérios: org_tach, org_estr, org_pint, org_ilha, org_ord
-   ⚠ Pontue cada subcritério apenas onde há evidência visual clara de ausência da medida (ex.: rua visivelmente sem qualquer pintura de solo = org_pint alto). Se a imagem não permite confirmar presença/ausência de uma medida específica (ex.: não é possível avaliar se há tachão pela foto disponível), use null para aquele subcritério — NÃO assuma nota máxima (3.0) por padrão. Se nenhum subcritério puder ser avaliado com confiança, o critério inteiro fica null.
-
-9. ACESSIBILIDADE E INFRAESTRUTURA VIÁRIA
-   Subcritérios: ac_meio, ac_rampa★, ac_tatil★, ac_calc, ac_caminh
-   ⚠ Rampa ausente em cruzamento com faixa = ac_rampa 3.0
-
-10. EVIDÊNCIAS DE CAMPO — avalie por indicadores INDIRETOS visíveis nas imagens:
-    Subcritérios: ev_pref, ev_vel, ev_ilum, ev_dren, ev_ultra, ev_hist★, ev_relat
-    ⚠ Use null por subcritério se não houver nenhum indicador disponível
-
-11. VULNERABILIDADE SOCIOECONÔMICA DO ENTORNO — exclusivo VISTA+
-    Subcritérios: se_equip, se_mobil★, se_idade, se_motor, se_inform, se_pcd, se_aband
-    ⚠ Maior vulnerabilidade + dependência de deslocamento a pé/bike = maior criticidade. Este critério tende a ser semelhante nas duas vias (mesmo entorno), mas pode variar se uma via dá acesso a equipamentos diferentes.
-
-12. CONECTIVIDADE COM A REDE DE MOBILIDADE ATIVA — NOVO v1.7
-    Subcritérios: cn_ciclo, cn_parada, cn_escolar, cn_passeio
-    ⚠ Avalie pela presença de ciclovias/paradas próximas visíveis no mapa/satélite
-
-13. RESILIÊNCIA CLIMÁTICA E AMBIENTAL — NOVO v1.7
-    Subcritérios: rc_sombra★, rc_solo, rc_sol, rc_pavim
-    ⚠ Avalie pela cobertura vegetal visível na imagem de satélite
-
-14. COMPORTAMENTO DE TRÁFEGO POR HORÁRIO — NOVO v1.7
-    Subcritérios: hr_escolar, hr_comercial, hr_noturno, hr_sazonal★
-    ⚠ Estime pelo perfil da via (presença de escola/comércio) e contexto da cidade (turística/sazonal)
+${montarSecaoArvores()}
 
 REGRAS DE PONTUAÇÃO — LEIA COM ATENÇÃO, é a causa mais comum de divergência com o laudo de campo:
 
@@ -508,11 +435,11 @@ CRITERIOS_V2_JSON:
 END_JSON_V2
 
 SUBCRIT_V1_JSON:
-{"placa_pare":V,"placa_conv":V,"macv":V,"pintura_pare":V,"faixa_exist":V,"faixa_pos":V,"setas":V,"stop_bar":V,"horiz":V,"daylighting":V,"vel_real":V,"vel_exc":V,"vel_red":V,"vis_carro":V,"vis_muro":V,"vis_arvore":V,"vis_poste":V,"vis_curva":V,"vis_ilum":V,"conf_conv":V,"conf_4x4":V,"conf_esq":V,"ped_escola":V,"ped_comercio":V,"ped_ciclo":V,"ped_informal":V,"ped_ambul":V,"geo_ang":V,"geo_larg":V,"geo_faix":V,"geo_curva":V,"geo_ilha":V,"amb_polo":V,"amb_escola":V,"amb_term":V,"amb_com":V,"amb_assist":V,"org_tach":V,"org_estr":V,"org_pint":V,"org_ilha":V,"org_ord":V,"ac_meio":V,"ac_rampa":V,"ac_tatil":V,"ac_calc":V,"ac_caminh":V,"ev_pref":V_OU_NULL,"ev_vel":V_OU_NULL,"ev_ilum":V_OU_NULL,"ev_dren":V_OU_NULL,"ev_ultra":V_OU_NULL,"ev_hist":V_OU_NULL,"ev_relat":V_OU_NULL,"se_equip":V,"se_mobil":V,"se_idade":V,"se_motor":V,"se_inform":V,"se_pcd":V,"se_aband":V,"cn_ciclo":V,"cn_parada":V,"cn_escolar":V,"cn_passeio":V,"rc_sombra":V,"rc_solo":V,"rc_sol":V,"rc_pavim":V,"hr_escolar":V,"hr_comercial":V,"hr_noturno":V,"hr_sazonal":V}
+${montarSubcritJsonTemplate()}
 END_SUBCRIT_V1
 
 SUBCRIT_V2_JSON:
-{"placa_pare":V,"placa_conv":V,"macv":V,"pintura_pare":V,"faixa_exist":V,"faixa_pos":V,"setas":V,"stop_bar":V,"horiz":V,"daylighting":V,"vel_real":V,"vel_exc":V,"vel_red":V,"vis_carro":V,"vis_muro":V,"vis_arvore":V,"vis_poste":V,"vis_curva":V,"vis_ilum":V,"conf_conv":V,"conf_4x4":V,"conf_esq":V,"ped_escola":V,"ped_comercio":V,"ped_ciclo":V,"ped_informal":V,"ped_ambul":V,"geo_ang":V,"geo_larg":V,"geo_faix":V,"geo_curva":V,"geo_ilha":V,"amb_polo":V,"amb_escola":V,"amb_term":V,"amb_com":V,"amb_assist":V,"org_tach":V,"org_estr":V,"org_pint":V,"org_ilha":V,"org_ord":V,"ac_meio":V,"ac_rampa":V,"ac_tatil":V,"ac_calc":V,"ac_caminh":V,"ev_pref":V_OU_NULL,"ev_vel":V_OU_NULL,"ev_ilum":V_OU_NULL,"ev_dren":V_OU_NULL,"ev_ultra":V_OU_NULL,"ev_hist":V_OU_NULL,"ev_relat":V_OU_NULL,"se_equip":V,"se_mobil":V,"se_idade":V,"se_motor":V,"se_inform":V,"se_pcd":V,"se_aband":V,"cn_ciclo":V,"cn_parada":V,"cn_escolar":V,"cn_passeio":V,"rc_sombra":V,"rc_solo":V,"rc_sol":V,"rc_pavim":V,"hr_escolar":V,"hr_comercial":V,"hr_noturno":V,"hr_sazonal":V}
+${montarSubcritJsonTemplate()}
 END_SUBCRIT_V2
 
 IMI_JSON:
