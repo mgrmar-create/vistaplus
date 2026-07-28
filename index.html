@@ -453,7 +453,7 @@ Nota sobre IMI: 6 subcritérios, escala 0.0–3.0 cada, calculados por MÉDIA. E
       res=await fetch("/api/diagnostico",{
      method:"POST",
      headers:{"Content-Type":"application/json"},
-     body:JSON.stringify({model:"claude-sonnet-5",max_tokens:25000,messages:[{role:"user",content:prompt}]})
+     body:JSON.stringify({model:"claude-sonnet-5",max_tokens:25000,prompt:prompt,cruzamento:{rua1,rua2,bairro:f.bairro,cidade:f.cidade,uf:f.uf}})
    });
     } catch(fetchErr) {
       throw new Error("Erro de conexão: "+fetchErr.message+". Verifique sua conexão com a internet.");
