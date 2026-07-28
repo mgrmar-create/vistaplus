@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: { message: "Method not allowed" } });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  const mapsKey = process.env.GOOGLE_MAPS_API_KEY;
+  const mapsKey = process.env.GOOGLE_SERVER_KEY;
   const mapboxToken = process.env.MAPBOX_TOKEN;
 
   if (!apiKey) {
