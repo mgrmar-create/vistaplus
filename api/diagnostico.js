@@ -78,7 +78,7 @@ export default async function handler(req, res) {
                 imagens.push({
                   tipo: "Vista aérea de satélite (Mapbox)",
                   base64: Buffer.from(mbBuffer).toString("base64"),
-                  mediaType: "image/png",
+                  mediaType: "image/jpeg",
                 });
               }
             } catch (e) { /* segue sem satélite se falhar */ }
